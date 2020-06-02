@@ -1,0 +1,22 @@
+{
+    "name": "assignment-3.2",
+    "version": "1.0.0",
+    "description": "",
+    "main": "server.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [],
+    "author": "Aviv & Yarden",
+    "license": "None",
+    "dependencies": {
+        "cookie-parser": "^1.4.5",
+        "dotenv": "^8.2.0",
+        "env": "0.0.2",
+        "express": "^4.17.1",
+        "morgan": "^1.10.0",
+        "nodemon": "^2.0.3",
+        "tedious": "^8.3.0",
+        "tedious-connection-pool": "^1.0.5"
+    }
+}
