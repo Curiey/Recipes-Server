@@ -1,9 +1,12 @@
+// import
 var express = require('express');
 var path = require("path");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
-var DB = require("./DBUtils.js");
+var DButils = require("./DBUtils");
+const bcrypt = require("bcrypt");
 
+// initial express for handling GET & POST request
 const app = express()
 app.use(logger("dev")); //logger
 app.use(express.json()); // parse application/json
@@ -11,67 +14,34 @@ app.use(express.urlencoded({ extended: false })); // parse application/x-www-for
 app.use(cookieParser()); //Parse the cookies into the req.cookies
 app.use(express.static(path.join(__dirname, "public"))); //To serve static files such as images, CSS files, and JavaScript files
 
-
 // Field
-let cookies_session_username_dict = {};
-let cookie_session_timestamp_dict = {};
+let cookies_session_username_dict = {}; //key: session, value:username
+let cookie_session_timestamp_dict = {}; //key: session, value:timestamp
 
+// ---------------- Private function ----------------
+
+// Check if given username existing in Database
 function checkIfUsernameExists(username) {
-
-    let queryResult = DButilsAzure.execQuery("SELECT * FROM Users WHERE username = '" + username + "'");
-    queryResult.then(function(result) {
-        if(result.length > 0) {
-            return true;
-        }
-    })
+    DButils.execQuery("SELECT * FROM Users WHERE username = '" + username + "'")
+    .then((result) => result.length > 0)
+    .catch((error) => console.log(error.message));
 };
 
+// Check if given password match to the given password in Database
 function verifyPassword(username, password) {
-
-    let queryResult = DButilsAzure.execQuery("SELECT * FROM Users WHERE username = '" + username + "'");
-    queryResult.then(function(result) {
-        if(result.length > 0) {
-            if(result[0].password == password) {
-                return true;
-            }
-        }
-    })
+    DButils.execQuery("SELECT password FROM Users WHERE username = '" + username + "'")
+    .then((result) => result.length > 0 )
+    .then((result) => result.password == password)
+    .catch((error) => console.log(error.message));
 };
 
-// GET requests handler
-app.get('/', (req, res) => {
-	res.status(200).send("Hello World");
-});
+// Create session for a given username
+function createSession(username) {
+    let date = new Date();
+    return username + "; " + date.getDate + "; " + date.getTime;
+};
 
-// POST requests handler
-app.post('/login', (req, res) => {
-    //field verification
-    if (!req.body.username) {
-        res.status(400).send("missing username field");
-    }
-    if (!req.body.password) {
-        res.status(400).send("missing password field");
-    }
-
-    //check validation
-    // TODO:check with the DB if the username exists
-    if(!checkIfUsernameExists(username)) {
-        res.status(400).send("pase lo que pase, mean, wrong username or password.");
-    }
-    // TODO: check if the password match the given password at the request
-    if(verifyPassword(username, req.password)) {
-        res.status(400).send("pase lo que pase, mean, wrong username or password.");
-    }
-
-    //create session-cookies
-    let seassion = addUserToServer(req.body.username)
-
-    //set cookie
-    document.cookie = seassion;
-
-	res.status(200).send(seassion);
-});
-
+// add user to seession structs
 function addUserToServer(username) {
     
     let session = createSession(username);
@@ -82,25 +52,113 @@ function addUserToServer(username) {
     return session;
 };
 
-function createSession(username) {
-    
-    let date = new Date();
+// ---------------- Request Handlers ----------------
 
-    return username + "; " + date.getDate + "; " + date.getTime;
-};
+// GET requests handler
+app.get('/', (req, res) => {
+	res.status(200).send("Hello World");
+});
 
-DB.execQuery("CREATE TABLE Users" +
-              "(userID INT IDENTITY PRIMARY KEY NOT NULL, " +
-              "username NVARCHAR(20) UNIQUE NOT NULL, " +
-              "firstName NVARCHAR(10) NOL NULL, " +
-              "lastName NVARCHAR(16) NOT NULL, " +
-              "country NVARCHAR(20) NOT NULL, " +
-              "password NVARCHAR(256) NOT NULL, " +
-              "email NVARCHAR(30) NOT NULL, " +
-              "imageList NVARCHAR(256) NOT NULL)")
+// POST requests handler - LOGIN
+// app.post('/login', (req, res) => {
+//     let username = req.body.username;
+//     let password =req.body.password;
+
+//     //field verification
+//     if (!username) res.status(400).send("missing username field");
+//     if (!password) res.status(400).send("missing password field");
+
+//     //check validation
+//     if(!checkIfUsernameExists(username)) res.status(400).send("pase lo que pase, mean, wrong username or password.");
+//     if(verifyPassword(username, password)) res.status(400).send("pase lo que pase, mean, wrong username or password.");
+
+//     //create session-cookies
+//     let seassion = addUserToServer(req.body.username)
+
+//   // Set cookie
+//   res.cookie("cookieName", "cookieValue", cookies_options); // options is optional
+
+//   // return cookie
+//   res.status(200).send("login succeeded");
+// });
+
+
+app.post("/Login", async (req, res, next) => {
+    try {
+      // check that username exists
+      const users = await DButils.execQuery("SELECT username FROM Users");
+      if (!users.find((x) => x.username === req.body.username))
+        throw { status: 401, message: "Username or Password incorrect" };
+  
+      // check that the password is correct
+      const user = (
+        await DButils.execQuery(
+          `SELECT * FROM Users WHERE username = '${req.body.username}'`
+        )
+      )[0];
+  
+      if (!bcrypt.compareSync(req.body.password, user.password)) {
+        throw { status: 401, message: "Username or Password incorrect" };
+      }
+  
+      // Set cookie
+      req.session.user_id = user.user_id;
+      // req.session.save();
+      // res.cookie(session_options.cookieName, user.user_id, cookies_options);
+  
+      // return cookie
+      res.status(200).send({ message: "login succeeded", success: true });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+
+  //register
+  app.post("/Register", async (req, res, next) => {
+    try {
+      // parameters exists
+      // valid parameters
+      // username exists
+      const users = await DButils.execQuery("SELECT username FROM users");
+  
+      if (users.find((x) => x.username === req.body.username))
+        throw { status: 409, message: "Username taken" };
+  
+      // add the new username
+      let hash_password = bcrypt.hashSync(
+        req.body.password,
+        parseInt(process.env.bcrypt_saltRounds)
+      );
+      await DButils.execQuery(
+        `INSERT INTO Users VALUES (default, '${req.body.username}','${req.body.firstName}', '${req.body.lastName}',
+         , '${req.body.country}', '${hash_password}', '${req.body.email}', '${req.body.imageList}')`
+      );
+      res.status(201).send({ message: "user created", success: true });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+
+
+// Catch all error and send to client
+app.use((err, req, res, next) => {
+    console.log(err.message);
+  
+    res.status(500).json({
+      message: err.message
+    });
+  });
 
 // Start listening
 const port = process.env.PORT || 3000; //environment variable
 app.listen(port, () => {
 	console.log(`Listening on port ${port}`);
 });
+
+//#region promise Version
+// const query = `SELECT * FROM dbo.users`; // const query = `INSERT INTO dbo.users (username,password) VALUES  ('a','a')`;
+// DButils.execQuery(query)
+//   .then((res) => isConatin(res))
+//   .catch((error) => console.log(error.message));
