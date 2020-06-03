@@ -3,6 +3,7 @@ var express = require('express');
 var path = require("path");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
+const session = require("client-sessions");
 var DButils = require("./DBUtils");
 const bcrypt = require("bcrypt");
 
@@ -10,9 +11,19 @@ const bcrypt = require("bcrypt");
 const app = express()
 app.use(logger("dev")); //logger
 app.use(express.json()); // parse application/json
-app.use(express.urlencoded({ extended: false })); // parse application/x-www-form-urlencoded
 app.use(cookieParser()); //Parse the cookies into the req.cookies
+app.use(
+  session({
+    cookieName: "session", // the cookie key name
+    secret: process.env.COOKIE_SECRET, // the encryption key
+    duration: 20 * 60 * 1000, // expired after 20 sec
+    activeDuration: 0 // if expiresIn < activeDuration,
+    //the session will be extended by activeDuration milliseconds
+  })
+);
+app.use(express.urlencoded({ extended: false })); // parse application/x-www-form-urlencoded
 app.use(express.static(path.join(__dirname, "public"))); //To serve static files such as images, CSS files, and JavaScript files
+
 
 // Field
 let cookies_session_username_dict = {}; //key: session, value:username
@@ -102,7 +113,7 @@ app.post("/Login", async (req, res, next) => {
       }
   
       // Set cookie
-      req.session.user_id = user.user_id;
+      req.session.user_id = user.userID;
       // req.session.save();
       // res.cookie(session_options.cookieName, user.user_id, cookies_options);
   
