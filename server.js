@@ -118,7 +118,11 @@ app.post("/Login", async (req, res, next) => {
   app.post("/Register", async (req, res, next) => {
     try {
       // parameters exists
+      if (!req.body.username || !req.body.firstName || !req.body.lastName || !req.body.country || !req.body.password || !req.body.email || !req.body.imageLink) {
+        throw { status: 400, message: "Not all reqired argument was given." };
+      }
       // valid parameters
+
       // username exists
       const users = await DButils.execQuery("SELECT username FROM users");
   
@@ -131,8 +135,7 @@ app.post("/Login", async (req, res, next) => {
         parseInt(process.env.bcrypt_saltRounds)
       );
       await DButils.execQuery(
-        `INSERT INTO Users VALUES (default, '${req.body.username}','${req.body.firstName}', '${req.body.lastName}',
-         , '${req.body.country}', '${hash_password}', '${req.body.email}', '${req.body.imageList}')`
+        `INSERT INTO Users VALUES ('${req.body.username}', '${req.body.firstName}', '${req.body.lastName}', '${req.body.country}', '${hash_password}', '${req.body.email}', '${req.body.imageLink}')`
       );
       res.status(201).send({ message: "user created", success: true });
     } catch (error) {
