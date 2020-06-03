@@ -7,22 +7,22 @@ const session = require("client-sessions");
 var DButils = require("./DBUtils");
 const bcrypt = require("bcrypt");
 
+
 // initial express for handling GET & POST request
 const app = express()
 app.use(logger("dev")); //logger
 app.use(express.json()); // parse application/json
+app.use(express.static(path.join(__dirname, "public"))); //To serve static files such as images, CSS files, and JavaScript files
 app.use(cookieParser()); //Parse the cookies into the req.cookies
-app.use(
-  session({
-    cookieName: "session", // the cookie key name
-    secret: process.env.COOKIE_SECRET, // the encryption key
-    duration: 20 * 60 * 1000, // expired after 20 sec
-    activeDuration: 0 // if expiresIn < activeDuration,
-    //the session will be extended by activeDuration milliseconds
+app.use(session({cookieName: "session", // the cookie key name
+                secret: process.env.COOKIE_SECRET, // the encryption key
+                duration: 20 * 60 * 1000, // expired after 20 minutes
+                activeDuration: 1000 * 60 * 5 // if expiresIn < activeDuration,
+                //the session will be extended by activeDuration milliseconds
   })
 );
 app.use(express.urlencoded({ extended: false })); // parse application/x-www-form-urlencoded
-app.use(express.static(path.join(__dirname, "public"))); //To serve static files such as images, CSS files, and JavaScript files
+
 
 
 // Field
@@ -31,67 +31,12 @@ let cookie_session_timestamp_dict = {}; //key: session, value:timestamp
 
 // ---------------- Private function ----------------
 
-// Check if given username existing in Database
-function checkIfUsernameExists(username) {
-    DButils.execQuery("SELECT * FROM Users WHERE username = '" + username + "'")
-    .then((result) => result.length > 0)
-    .catch((error) => console.log(error.message));
-};
-
-// Check if given password match to the given password in Database
-function verifyPassword(username, password) {
-    DButils.execQuery("SELECT password FROM Users WHERE username = '" + username + "'")
-    .then((result) => result.length > 0 )
-    .then((result) => result.password == password)
-    .catch((error) => console.log(error.message));
-};
-
-// Create session for a given username
-function createSession(username) {
-    let date = new Date();
-    return username + "; " + date.getDate + "; " + date.getTime;
-};
-
-// add user to seession structs
-function addUserToServer(username) {
-    
-    let session = createSession(username);
-
-    cookies_session_username_dict[session] = username;
-    cookie_session_timestamp_dict[session] = new Date();
-
-    return session;
-};
-
 // ---------------- Request Handlers ----------------
 
 // GET requests handler
 app.get('/', (req, res) => {
 	res.status(200).send("Hello World");
 });
-
-// POST requests handler - LOGIN
-// app.post('/login', (req, res) => {
-//     let username = req.body.username;
-//     let password =req.body.password;
-
-//     //field verification
-//     if (!username) res.status(400).send("missing username field");
-//     if (!password) res.status(400).send("missing password field");
-
-//     //check validation
-//     if(!checkIfUsernameExists(username)) res.status(400).send("pase lo que pase, mean, wrong username or password.");
-//     if(verifyPassword(username, password)) res.status(400).send("pase lo que pase, mean, wrong username or password.");
-
-//     //create session-cookies
-//     let seassion = addUserToServer(req.body.username)
-
-//   // Set cookie
-//   res.cookie("cookieName", "cookieValue", cookies_options); // options is optional
-
-//   // return cookie
-//   res.status(200).send("login succeeded");
-// });
 
 
 app.post("/Login", async (req, res, next) => {
@@ -154,7 +99,11 @@ app.post("/Login", async (req, res, next) => {
     }
   });
 
-
+//Logout
+app.post("/Logout", function (req, res) {
+  req.session.reset(); // reset the session info --> send cookie when  req.session == undefined!!
+  res.send({ success: true, message: "logout succeeded" });
+  });
 
 // Catch all error and send to client
 app.use((err, req, res, next) => {
