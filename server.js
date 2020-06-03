@@ -7,7 +7,6 @@ const session = require("client-sessions");
 var DButils = require("./DBUtils");
 const bcrypt = require("bcrypt");
 
-
 // initial express for handling GET & POST request
 const app = express()
 app.use(logger("dev")); //logger
@@ -23,7 +22,12 @@ app.use(session({cookieName: "session", // the cookie key name
 );
 app.use(express.urlencoded({ extended: false })); // parse application/x-www-form-urlencoded
 
+// routes
+const profile = require("./routes/profile");
+const recipes = require("./routes/recipes");
 
+app.use("/profile", profile);
+app.use("/recipes", recipes);
 
 // Field
 let cookies_session_username_dict = {}; //key: session, value:username
@@ -38,8 +42,37 @@ app.get('/', (req, res) => {
 	res.status(200).send("Hello World");
 });
 
+// Register
+app.post("/register", async (req, res, next) => {
+  try {
+    // parameters exists
+    if (!req.body.username || !req.body.firstName || !req.body.lastName || !req.body.country || !req.body.password || !req.body.email || !req.body.imageLink) {
+      throw { status: 400, message: "Not all reqired argument was given." };
+    }
+    // valid parameters
 
-app.post("/Login", async (req, res, next) => {
+    // username exists
+    const users = await DButils.execQuery("SELECT username FROM users");
+
+    if (users.find((x) => x.username === req.body.username))
+      throw { status: 409, message: "Username taken" };
+
+    // add the new username
+    let hash_password = bcrypt.hashSync(
+      req.body.password,
+      parseInt(process.env.bcrypt_saltRounds)
+    );
+    await DButils.execQuery(
+      `INSERT INTO Users VALUES ('${req.body.username}', '${req.body.firstName}', '${req.body.lastName}', '${req.body.country}', '${hash_password}', '${req.body.email}', '${req.body.imageLink}')`
+    );
+    res.status(201).send({ message: "user created", success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Login
+app.post("/login", async (req, res, next) => {
     try {
       // check that username exists
       const users = await DButils.execQuery("SELECT username FROM Users");
@@ -69,41 +102,17 @@ app.post("/Login", async (req, res, next) => {
     }
   });
 
-
-  //register
-  app.post("/Register", async (req, res, next) => {
-    try {
-      // parameters exists
-      if (!req.body.username || !req.body.firstName || !req.body.lastName || !req.body.country || !req.body.password || !req.body.email || !req.body.imageLink) {
-        throw { status: 400, message: "Not all reqired argument was given." };
-      }
-      // valid parameters
-
-      // username exists
-      const users = await DButils.execQuery("SELECT username FROM users");
-  
-      if (users.find((x) => x.username === req.body.username))
-        throw { status: 409, message: "Username taken" };
-  
-      // add the new username
-      let hash_password = bcrypt.hashSync(
-        req.body.password,
-        parseInt(process.env.bcrypt_saltRounds)
-      );
-      await DButils.execQuery(
-        `INSERT INTO Users VALUES ('${req.body.username}', '${req.body.firstName}', '${req.body.lastName}', '${req.body.country}', '${hash_password}', '${req.body.email}', '${req.body.imageLink}')`
-      );
-      res.status(201).send({ message: "user created", success: true });
-    } catch (error) {
-      next(error);
-    }
-  });
-
-//Logout
-app.post("/Logout", function (req, res) {
+// Logout
+app.post("/logout", function (req, res) {
   req.session.reset(); // reset the session info --> send cookie when  req.session == undefined!!
   res.send({ success: true, message: "logout succeeded" });
   });
+
+// About
+app.post("/about", function (req, res) {
+    // TODO: implements
+  });
+
 
 // Catch all error and send to client
 app.use((err, req, res, next) => {

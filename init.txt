@@ -5,23 +5,23 @@ CREATE TABLE Users(
 					firstName NVARCHAR(10) NOT NULL,
 					lastName NVARCHAR(16) NOT NULL,
 					country NVARCHAR(20) NOT NULL,
-					password NVARCHAR(256) NOT NULL,
+					password NVARCHAR(max) NOT NULL,
 					email NVARCHAR(30) NOT NULL,
-					image NVARCHAR(256) NOT NULL
+					image NVARCHAR(max) NOT NULL
 )
 	
 -----------------------------Recipes-----------------------------
 CREATE TABLE Recipes(
                     id INT IDENTITY PRIMARY KEY NOT NULL,
                     userID INT NOT NULL,
-                    title NVARCHAR(256) NOT NULL,
-                    readyInMinutes NVARCHAR(256) NOT NULL,
+                    title NVARCHAR(30) NOT NULL,
+                    readyInMinutes INT NOT NULL,
                     aggregateLikes INT DEFAULT 0 NOT NULL,
                     vegan INT NOT NULL,
                     vegetarian INT NOT NULL,
-                    instructions NVARCHAR NOT NULL,
+                    instructions NVARCHAR(max) NOT NULL,
                     serving INT NOT NULL,
-                    image NVARCHAR NOT NULL,
+                    image NVARCHAR(max) NOT NULL,
                     FOREIGN KEY (userID) REFERENCES Users(id) 
 )
 
@@ -45,8 +45,8 @@ CREATE TABLE Watched(
 
 -----------------------------Ingredients-----------------------------
 CREATE TABLE Ingredients(
-                    id INT NOT NULL,
-                    name NVARCHAR NOT NULL,
+                    id INT IDENTITY NOT NULL,
+                    name NVARCHAR(30) NOT NULL,
 	                PRIMARY KEY("id")
 )
 
@@ -54,6 +54,8 @@ CREATE TABLE Ingredients(
 CREATE TABLE recipeIngredients(
                     recipeID INT NOT NULL,
                     ingredientID INT NOT NULL,
+                    amount INT NOT NULL,
+                    unitLong NVARCHAR(10) NOT NULL,
 	                PRIMARY KEY("recipeID","ingredientID"),
                     FOREIGN KEY (recipeID) REFERENCES Recipes(id),
                     FOREIGN KEY (ingredientID) REFERENCES Ingredients(id) 
@@ -64,14 +66,14 @@ CREATE TABLE recipeIngredients(
 CREATE TABLE PersonalRecipes(
                     id INT IDENTITY PRIMARY KEY NOT NULL,
                     userID INT NOT NULL,
-                    title NVARCHAR(256) NOT NULL,
-                    readyInMinutes NVARCHAR(256) NOT NULL,
+                    title NVARCHAR(30) NOT NULL,
+                    readyInMinutes INT NOT NULL,
                     aggregateLikes INT DEFAULT 0 NOT NULL,
                     vegan INT NOT NULL,
                     vegetarian INT NOT NULL,
-                    instructions NVARCHAR NOT NULL,
+                    instructions NVARCHAR(max) NOT NULL,
                     serving INT NOT NULL,
-                    image NVARCHAR NOT NULL,
+                    image NVARCHAR(max) NOT NULL,
                     FOREIGN KEY (userID) REFERENCES Users(id) 
 )
 
