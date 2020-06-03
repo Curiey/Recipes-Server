@@ -6,6 +6,7 @@ const config = {
   password: process.env.tedious_password,
   server: process.env.tedious_server,
   database: process.env.tedious_database,
+  connectionTimeout: 1500000,
   options: {
     encrypt: true,
     enableArithAbort: true
@@ -13,7 +14,9 @@ const config = {
 };
 
 const pool = new sql.ConnectionPool(config);
-const poolConnect = pool.connect();
+const poolConnect = pool
+  .connect()
+  .catch((err) => console.log(err));
 
 exports.execQuery = async function (query) {
   await poolConnect;
