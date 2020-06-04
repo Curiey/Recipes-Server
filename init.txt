@@ -34,6 +34,13 @@ CREATE TABLE Favorites(
                     FOREIGN KEY (recipeID) REFERENCES Recipes(id) 
 )
 
+-----------------------------FavoritesSpoonacular-----------------------------
+CREATE TABLE FavoritesSpoonacular(
+                    userID INT NOT NULL,
+                    recipeID INT NOT NULL,
+	                PRIMARY KEY("userID","recipeID"),
+                    FOREIGN KEY (userID) REFERENCES Users(id)
+)
 -----------------------------Watched-----------------------------
 CREATE TABLE Watched(
                     userID INT NOT NULL,
@@ -43,6 +50,13 @@ CREATE TABLE Watched(
                     FOREIGN KEY (recipeID) REFERENCES Recipes(id) 
 )
 
+-----------------------------WatchedSpoonacular-----------------------------
+CREATE TABLE WatchedSpoonacular(
+                    userID INT NOT NULL,
+                    recipeID INT NOT NULL,
+	                PRIMARY KEY("userID","recipeID"),
+                    FOREIGN KEY (userID) REFERENCES Users(id)
+)
 -----------------------------Ingredients-----------------------------
 CREATE TABLE Ingredients(
                     id INT IDENTITY NOT NULL,
@@ -79,8 +93,9 @@ CREATE TABLE PersonalRecipes(
 
 
 
-
+DROP TABLE FavoritesSpoonacular
 DROP TABLE Favorites
+DROP TABLE WatchedSpoonacular
 DROP TABLE Watched
 DROP TABLE recipeIngredients
 DROP TABLE Ingredients
