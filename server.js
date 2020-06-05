@@ -4,7 +4,9 @@ var path = require("path");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
 const session = require("client-sessions");
-var DButils = require("./DBUtils");
+const DButils = require("./DButils");
+
+const api_domain = "https://api.spoonacular.com/recipes";
 
 // initial express for handling GET & POST request
 const app = express()
@@ -24,18 +26,18 @@ app.use(express.urlencoded({ extended: false })); // parse application/x-www-for
 
 // routes
 const profile = require("./routes/profile");
-const recipes = require("./routes/recipes");
-const users = require("./routes/users");
+const recipe = require("./routes/recipe");
+const user = require("./routes/user");
 
 //#region global simple
 app.use(async (req, res, next) => {
+  console.log("app.use");
   if(req.session && req.session.id != undefined) {
-    await DButils.execQuery("SELECT id FROM Users").then((users) => {
-      if (users.find((x) => x.id === req.session.id)) {
+    await DButils.execQuery("SELECT id FROM Users").then((user) => {
+      if (user.find((x) => x.id === req.session.id)) {
           req.id = req.session.id;
           // req.session.id = req.session.id; // refresh the session value
           // res.locals.id = req.session.id;
-          next();
       }
   }).catch((error) => {throw {error}} );
   } next();
@@ -43,12 +45,23 @@ app.use(async (req, res, next) => {
 //#endregion
 
 app.use("/profile", profile);
-app.use("/recipes", recipes);
-app.use("/user", users);
+app.use("/recipe", recipe);
+app.use("/user", user);
+
+// - - - - - - - - - - - - - - functions - - - - - - - - - - - - - - - 
+async function getRandomRecipes() {
+  return axios.get(`${api_domain}/recipes/random`, {
+    params: {
+      number: process.env.numberOfRandom,
+      apiKey: process.env.spooncular_apiKey
+    }
+  })
+}
+// - - - - - - - - - - - - - -end of functions - - - - - - - - - - - - - - - 
 
 // Welcome
 app.post("/", function (req, res) {
-  // TODO: implements
+  let randomRacipes = getRandomRecipes();
 });
 
 // About
