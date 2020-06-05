@@ -32,7 +32,7 @@ router.post("/register", async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-});
+})
 
 // Login
 router.post("/login", async (req, res, next) => {
@@ -65,7 +65,7 @@ router.post("/login", async (req, res, next) => {
     } catch (error) {
       next(error);
     }
-  });
+})
 
 // Logout
 router.post("/logout", function (req, res) {
@@ -73,6 +73,6 @@ router.post("/logout", function (req, res) {
   req.session.reset(); // reset the session info --> send cookie when  req.session == undefined!!
   res.send({ success: true, message: "logout succeeded" });
   } else throw { status: 401, message: "must logged in before logging out." };
-  });
+})
 
 module.exports = router;

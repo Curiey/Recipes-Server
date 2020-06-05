@@ -43,7 +43,8 @@ async function checkIfIsBeenWatched(userID, recipeID) {
   }
   else {
     return true;
-}}
+  }
+}
 
 async function checkIfIsFavorite(userID, recipeID) {
     let answer = await DButils.execQuery("SELECT * FROM FavoritesSpoonacular WHERE userID='" + userID + "' and recipeID='" + recipeID + "'");
@@ -52,29 +53,32 @@ async function checkIfIsFavorite(userID, recipeID) {
     }
     else {
       return true;
-}}
+  }
+}
+
+async function transformSpoonacularRecipe(spoonacularRandomRecipes, id) {
+  let recipe_data_spooncular = extractDataFromRecipe(recipe.data);
+  if(id)    // check if the request came from a guest or user.
+  {   // our data from azure: isFavorite, isBeenWatched
+    recipe_data_spooncular.isBeenWatched = await checkIfIsBeenWatched(id, recipe_data_spooncular.id);
+    recipe_data_spooncular.isFavorite = await checkIfIsFavorite(id, recipe_data_spooncular.id);
+  }
+  return recipe_data_spooncular;
+}
 // - - - - - - - - - - - - - -end of functions - - - - - - - - - - - - - - - 
 
 
 // - - - - - - - - - - - - - - http requests - - - - - - - - - - - - - - - 
 router.get("/:id/information", async function (req, res) {
-  console.log("/:id/information");
   let recipeID = req.params.id;
-  let recipe = await getRecipeInfo(recipeID);
-  let recipe_data_spooncular = extractDataFromRecipe(recipe.data);
-
-   // check if the request came from a guest or user.
-  if(req.id)
-  {    // our data from azure: isFavorite, isBeenWatched
-    recipe_data_spooncular.isBeenWatched = await checkIfIsBeenWatched(req.id, recipeID);
-    recipe_data_spooncular.isFavorite = await checkIfIsFavorite(req.id, recipeID);
-  }
-    res.status(200).send({ ...recipe_data_spooncular });
-  });
+  let spoonacularRandomRacipe = await getRecipeInfo(recipeID);
+  let recipe = transformSpoonacularRecipe(spoonacularRandomRacipe.data);
+    res.status(200).send({ ...recipe });
+  })
 
 router.get("/search", function (req, res) {
     res.send(req.originalUrl);
-  });
+  })
 
   // - - - - - - - - - - - - - - end of http requests - - - - - - - - - - - - - - - 
   

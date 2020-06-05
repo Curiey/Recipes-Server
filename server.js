@@ -5,6 +5,7 @@ var cookieParser = require("cookie-parser");
 var logger = require("morgan");
 const session = require("client-sessions");
 const DButils = require("./DButils");
+const axios = require("axios");
 
 const api_domain = "https://api.spoonacular.com/recipes";
 
@@ -50,18 +51,94 @@ app.use("/user", user);
 
 // - - - - - - - - - - - - - - functions - - - - - - - - - - - - - - - 
 async function getRandomRecipes() {
-  return axios.get(`${api_domain}/recipes/random`, {
+  return await axios.get(`${api_domain}/random`, {
     params: {
-      number: process.env.numberOfRandom,
-      apiKey: process.env.spooncular_apiKey
+      apiKey: process.env.spooncular_apiKey,
+      number: process.env.numberOfRandom
     }
   })
+}
+
+function checkIfThereIsInstractions(recipes) {
+  for (let index = 0; index < recipes.length; index++) {
+    const { analyzedInstructions } = recipes[index];
+    console.log("arrived here " + analyzedInstructions);
+    if(!analyzedInstructions) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function getIngredient(ingredient) {
+  let { id, name } = ingredient;
+  return { id, name };
+}
+
+function getInstruction(instruction) {
+  let { number, step, ingredients } = instruction;
+  ingredients = ingredients.map((ingredient) => getIngredient(ingredient));
+  return { number, step, ingredients };
+}
+
+function extractDataFromRecipe(recipeDataSpooncular)
+{
+  let { id, servings, image, title, readyInMinutes, vegan, vegetarian, aggregateLikes } = recipeDataSpooncular;
+  let { extendedIngredients } = recipeDataSpooncular;
+  let ingredients = extendedIngredients.map((ingredient) => getIngredient(ingredient));
+  let { analyzedInstructions } = recipeDataSpooncular;
+  let instructions = analyzedInstructions[0].steps.map((step) => getInstruction(step));
+  return { id, servings, image, title, readyInMinutes, vegan, vegetarian, aggregateLikes, instructions, ingredients };
+    //instructions, ingredients, serving, id, image, title, readyInMinutes, vegan, vegetarian, aggregateLikes
+}
+
+async function checkIfIsBeenWatched(userID, recipeID) {
+  let answer = await DButils.execQuery("SELECT * FROM WatchedSpoonacular WHERE userID='" + userID + "' and recipeID='" + recipeID + "'");
+  if(answer.length == 0) {
+    return false;
+  }
+  else {
+    return true;
+  }
+}
+
+async function checkIfIsFavorite(userID, recipeID) {
+    let answer = await DButils.execQuery("SELECT * FROM FavoritesSpoonacular WHERE userID='" + userID + "' and recipeID='" + recipeID + "'");
+    if(answer.length == 0) {
+      return false;
+    }
+    else {
+      return true;
+  }
+}
+
+async function transformSpoonacularRecipe(spoonacularRandomRecipes, id) {
+  let recipe_data_spooncular = extractDataFromRecipe(recipe.data);
+  if(id)    // check if the request came from a guest or user.
+  {   // our data from azure: isFavorite, isBeenWatched
+    recipe_data_spooncular.isBeenWatched = await checkIfIsBeenWatched(id, recipe_data_spooncular.id);
+    recipe_data_spooncular.isFavorite = await checkIfIsFavorite(id, recipe_data_spooncular.id);
+  }
+  return recipe_data_spooncular;
+}
+
+async function transformSpoonacularRecipes(spoonacularRandomRecipes, id) {
+  return spoonacularRandomRecipes.map((currentSpoonacularRacipe) => transformSpoonacularRecipe(currentSpoonacularRacipe));
+  // let instructions = analyzedInstructions[0].steps.map((step) => getInstruction(step));
 }
 // - - - - - - - - - - - - - -end of functions - - - - - - - - - - - - - - - 
 
 // Welcome
-app.post("/", function (req, res) {
-  let randomRacipes = getRandomRecipes();
+app.get("/", async function (req, res) {
+  let spoonacularRandomRecipes = await getRandomRecipes();
+  while(checkIfThereIsInstractions(spoonacularRandomRecipes.data.recipes)) {
+    spoonacularRandomRecipes = getRandomRecipes();
+  }
+  let randomRecipes = transformSpoonacularRecipes(spoonacularRandomRecipes);
+  if(req.id) {
+    let lastRecipesViewed = getHistory(req.id);
+  }
+  res.status(200).send({ RandomRecipes: {...randomRecipes}, LastRecipedViewed: {...lastRecipesViewed}});
 });
 
 // About
