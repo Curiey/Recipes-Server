@@ -5,7 +5,13 @@ var cookieParser = require("cookie-parser");
 var logger = require("morgan");
 const session = require("client-sessions");
 const DButils = require("./DButils");
+const Utils = require("./Utils");
 const axios = require("axios");
+
+//TODO: Delete later
+var fs = require('fs');
+// --------------------
+
 
 const api_domain = "https://api.spoonacular.com/recipes";
 
@@ -50,6 +56,23 @@ app.use("/recipe", recipe);
 app.use("/user", user);
 
 // - - - - - - - - - - - - - - functions - - - - - - - - - - - - - - - 
+
+function writeJSONToDisc(data)
+{
+  fs.writeFile ("input2.json", JSON.stringify(data), function(err) {
+    if (err) throw err;
+    console.log('complete');
+    }
+);
+}
+
+function readJSONFromDisc()
+{
+  var obj = JSON.parse(fs.readFileSync('input2.json', 'utf8'));
+  return obj;
+}
+
+
 async function getRandomRecipes() {
   return await axios.get(`${api_domain}/random`, {
     params: {
@@ -62,18 +85,14 @@ async function getRandomRecipes() {
 function checkIfThereIsInstractions(recipes) {
   for (let index = 0; index < recipes.length; index++) {
     const { analyzedInstructions } = recipes[index];
-    console.log("arrived here " + analyzedInstructions);
-    if(!analyzedInstructions) {
+    console.log("arrived here " + index);
+    if(!analyzedInstructions || analyzedInstructions.length == 0) {
       return false;
     }
   }
   return true;
 }
 
-function getIngredient(ingredient) {
-  let { id, name } = ingredient;
-  return { id, name };
-}
 
 function getInstruction(instruction) {
   let { number, step, ingredients } = instruction;
@@ -81,69 +100,52 @@ function getInstruction(instruction) {
   return { number, step, ingredients };
 }
 
-function extractDataFromRecipe(recipeDataSpooncular)
-{
-  let { id, servings, image, title, readyInMinutes, vegan, vegetarian, aggregateLikes } = recipeDataSpooncular;
-  let { extendedIngredients } = recipeDataSpooncular;
-  let ingredients = extendedIngredients.map((ingredient) => getIngredient(ingredient));
-  let { analyzedInstructions } = recipeDataSpooncular;
-  let instructions = analyzedInstructions[0].steps.map((step) => getInstruction(step));
-  return { id, servings, image, title, readyInMinutes, vegan, vegetarian, aggregateLikes, instructions, ingredients };
-    //instructions, ingredients, serving, id, image, title, readyInMinutes, vegan, vegetarian, aggregateLikes
-}
-
-async function checkIfIsBeenWatched(userID, recipeID) {
-  let answer = await DButils.execQuery("SELECT * FROM WatchedSpoonacular WHERE userID='" + userID + "' and recipeID='" + recipeID + "'");
-  if(answer.length == 0) {
-    return false;
-  }
-  else {
-    return true;
-  }
-}
-
-async function checkIfIsFavorite(userID, recipeID) {
-    let answer = await DButils.execQuery("SELECT * FROM FavoritesSpoonacular WHERE userID='" + userID + "' and recipeID='" + recipeID + "'");
-    if(answer.length == 0) {
-      return false;
-    }
-    else {
-      return true;
-  }
-}
-
-async function transformSpoonacularRecipe(spoonacularRandomRecipes, id) {
-  let recipe_data_spooncular = extractDataFromRecipe(recipe.data);
-  if(id)    // check if the request came from a guest or user.
-  {   // our data from azure: isFavorite, isBeenWatched
-    recipe_data_spooncular.isBeenWatched = await checkIfIsBeenWatched(id, recipe_data_spooncular.id);
-    recipe_data_spooncular.isFavorite = await checkIfIsFavorite(id, recipe_data_spooncular.id);
-  }
-  return recipe_data_spooncular;
-}
-
-async function transformSpoonacularRecipes(spoonacularRandomRecipes, id) {
-  return spoonacularRandomRecipes.map((currentSpoonacularRacipe) => transformSpoonacularRecipe(currentSpoonacularRacipe));
+async function transformSpoonacularRecipes(spoonacularRandomRecipes, userID) {
+  let result =  await spoonacularRandomRecipes.map((currentSpoonacularRacipe) => Utils.transformSpoonacularRecipe(currentSpoonacularRacipe, userID));
+  return Promise.all(result).then(function(result) {
+    return result;
+  })
   // let instructions = analyzedInstructions[0].steps.map((step) => getInstruction(step));
 }
+
+async function getHistory(userID)
+{
+  let recipesIDs = await DButils.execQuery("SELECT recipe1_ID, recipe2_ID, recipe3_ID FROM Histories WHERE userID='" + userID + "'");
+  let {recipe1_ID, recipe2_ID, recipe3_ID} = recipesIDs[0];
+  let recipesList = [recipe1_ID, recipe2_ID, recipe3_ID];
+  let userRecipesHistories = recipesList.map((currentRecipeID) => Utils.getSpooncularRecipeByID(userID, currentRecipeID));
+  return Promise.all(userRecipesHistories).then(function(result) {
+    return result;
+  })
+  
+}
+
 // - - - - - - - - - - - - - -end of functions - - - - - - - - - - - - - - - 
 
 // Welcome
 app.get("/", async function (req, res) {
-  let spoonacularRandomRecipes = await getRandomRecipes();
-  while(checkIfThereIsInstractions(spoonacularRandomRecipes.data.recipes)) {
-    spoonacularRandomRecipes = getRandomRecipes();
-  }
-  let randomRecipes = transformSpoonacularRecipes(spoonacularRandomRecipes);
-  if(req.id) {
-    let lastRecipesViewed = getHistory(req.id);
-  }
-  res.status(200).send({ RandomRecipes: {...randomRecipes}, LastRecipedViewed: {...lastRecipesViewed}});
-});
+  //TODO: return it later ! ! !
+  // let spoonacularRandomRecipes = await getRandomRecipes();
+  //  writeJSONToDisc(spoonacularRandomRecipes.data.recipes);
 
-// About
-app.post("/about", function (req, res) {
-  // TODO: implements
+
+  //TODO: delete later ! ! !
+  let spoonacularRandomRecipes = readJSONFromDisc()
+
+
+  while(!checkIfThereIsInstractions(spoonacularRandomRecipes)) { //TODO: after removing the read/write from disc change back to spoonacularRandomRecipes.data.recipes
+    spoonacularRandomRecipes = await getRandomRecipes();
+    writeJSONToDisc(spoonacularRandomRecipes.data.recipes);
+  }
+
+
+  let randomRecipes = await transformSpoonacularRecipes(spoonacularRandomRecipes, req.id); //TODO: after removing the read/write from disc change back to spoonacularRandomRecipes.data.recipes
+  let respond = { RandomRecipes: {...randomRecipes}};
+  if(req.id) {
+    let lastRecipesViewed = await getHistory(req.id);
+    respond.LastRecipedViewed = {...lastRecipesViewed};
+  }
+  res.status(200).send(respond);
 });
 
 

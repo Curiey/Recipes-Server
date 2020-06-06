@@ -92,7 +92,17 @@ CREATE TABLE PersonalRecipes(
 )
 
 
+-----------------------------Histories-----------------------------
+CREATE TABLE Histories (
+userID INT NOT NULL PRIMARY KEY,
+recipe1_ID INT,
+recipe2_ID INT,
+recipe3_ID INT,
+FOREIGN KEY (userID) REFERENCES Users(id))
 
+
+
+DROP TABLE Histories
 DROP TABLE FavoritesSpoonacular
 DROP TABLE Favorites
 DROP TABLE WatchedSpoonacular
@@ -102,3 +112,8 @@ DROP TABLE Ingredients
 DROP TABLE Recipes
 DROP TABLE PersonalRecipes
 DROP TABLE Users
+
+UPDATE [dbo].[Histories]
+SET recipe1_ID = 1, recipe2_ID = 2, recipe3_ID = 3
+WHERE userID = 8
+
