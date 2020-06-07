@@ -9,37 +9,24 @@ router.use((req, res, next) => {
     else throw { status: 401, message: "unauthorized" };
 })
 
-router.get("/viewFavorites", async function (req, res) {
+router.get("/viewFavorites", async function (req, res, next) {
   if(!req.id) {
-      throw { status: 401, message: "not autorize user." };
+      next(new Error("not autorize user."));
   }
 
-  //favorites recipes created by users
-  let favoritesIDs = await DButils.execQuery("SELECT recipeID FROM Favorites WHERE userID='" + req.id + "'");
-  let favoritsRecipes = favoritesIDs.map((recipeID) => Utils.getRecipeByID(req.id, recipeID.recipeID));
-  
   let recipes = {
     "recipeList": []
   };
 
-  await Promise.all(favoritsRecipes)
-  .then((result) => {
-    result.forEach((recipe) => recipes.recipeList.push(recipe));
-  })
-  .catch((error) => res.send({ status: 401, message: error.message }));
-
-  // console.log("123");
   // favorites recipes taken from spooncular
   let favoritesIDsSpooncular = await DButils.execQuery("SELECT recipeID FROM FavoritesSpoonacular WHERE userID='" + req.id + "'");
   let favoritsRecipesSpooncular = favoritesIDsSpooncular.map((recipeID) => Utils.getSpooncularRecipeByID(req.id, recipeID.recipeID));
-
 
   await Promise.all(favoritsRecipesSpooncular)
   .then((result) => {
     result.forEach((recipe) => recipes.recipeList.push(recipe));
   })
   .catch((error) => res.send({ status: 401, message: error.message }));
-
 
   res.status(200).send(recipes);
 });
@@ -63,24 +50,11 @@ router.post("/createRecipe", async function (req, res) {
 });
 
 router.post("/addToFavorites", async function (req, res) {
-  let { spoonacular, recipeID } = req.body;
-  if( spoonacular == undefined || recipeID == undefined || req.id == undefined ) throw { status: 400, message: "one of the argument is not specified." };
-
-  if(spoonacular == 0) {  //Our recipe
-    await DButils.execQuery(`INSERT INTO Favorites VALUES ('${req.id}', '${recipeID}')`)
-    .then((result) => res.status(201).send({message: "recipe added seccessfuly", sucess: true  }))
-    .catch((error) => {throw {  status: 409, message: "recipe already marked as favorite by the user"}});
-  } else if(spoonacular == 1) { // sponcular recipe
-    try {
-      await DButils.execQuery(`INSERT INTO FavoritesSpoonacular VALUES ('${req.id}', '${recipeID}')`)
-      .then((result) => res.status(201).send({ message: "recipe added seccessfuly", sucess: true }))
-      .catch((error) => {throw {  status: 409, message: "recipe already marked as favorite by the user"}});
-    } catch (error) {
-      throw { status: 401, message: "unauthorized" };
-    }
-  } else {
-    throw ({ message: "invalid spoonacular value", sucess: true });
-  }
+  let { recipeID } = req.body;
+  if( recipeID == undefined || req.id == undefined ) throw { status: 400, message: "one of the argument is not specified." };
+  await DButils.execQuery(`INSERT INTO FavoritesSpoonacular VALUES ('${req.id}', '${recipeID}')`)
+  .then((result) => res.status(201).send({ message: "recipe added seccessfuly", sucess: true }))
+  .catch((error) => {throw {  status: 409, message: "recipe already marked as favorite by the user"}});
 });
 
 router.post("/addToWatched", async function (req, res) {
@@ -97,9 +71,12 @@ router.post("/addToWatched", async function (req, res) {
   res.status(201).send({ message: "recipe added seccessfuly", sucess: true });
 });
 
+
+// Catch all error and send to client
 router.use(function (err, req, res, next) {
   console.error(err);
   res.status(err.status || 500).send({ message: err.message, success: false });
 });
+
 
 module.exports = router;

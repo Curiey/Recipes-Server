@@ -81,4 +81,12 @@ router.post("/logout", function (req, res) {
   } else throw { status: 401, message: "must logged in before logging out." };
 })
 
+
+// Catch all error and send to client
+router.use(function (err, req, res, next) {
+  console.error(err);
+  res.status(err.status || 500).send({ message: err.message, success: false });
+});
+
+
 module.exports = router;

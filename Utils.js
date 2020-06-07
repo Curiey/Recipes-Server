@@ -6,12 +6,11 @@ const api_domain = "https://api.spoonacular.com/recipes";
 
 //------------- SPOONCULAR FUNCTIONS --------------------
 async function getRecipeInfo(id) {
-    return axios.get(`${api_domain}/${id}/information`, {
-      params: {
-        apiKey: process.env.spooncular_apiKey
-      }
-    })
-
+  return axios.get(`${process.env.api_domain}/${id}/information`, {
+    params: {
+      apiKey: process.env.spooncular_apiKey
+    }
+  })
 }
 
 function getIngredient(ingredient) {
@@ -30,18 +29,39 @@ function extractDataFromRecipe(recipeDataSpooncular) {
   let { extendedIngredients } = recipeDataSpooncular;
   let ingredients = extendedIngredients.map((ingredient) => getIngredient(ingredient));
   let { analyzedInstructions } = recipeDataSpooncular;
-  let instructions = analyzedInstructions[0].steps.map((step) => getInstruction(step));
+
+  let instructions; //handle recipes with analyzedInstructions length zero
+  if(analyzedInstructions.length == 0) {
+    instructions = [];
+  } else {
+    instructions = analyzedInstructions[0].steps.map((step) => getInstruction(step));
+  }
   return { id, servings, image, title, readyInMinutes, vegan, vegetarian, aggregateLikes, instructions, ingredients };
     //instructions, ingredients, serving, id, image, title, readyInMinutes, vegan, vegetarian, aggregateLikes
 }
 
-async function checkIfIsBeenWatched(userID, recipeID) {
-  let answer = await DButils.execQuery("SELECT * FROM WatchedSpoonacular WHERE userID='" + userID + "' and recipeID='" + recipeID + "'");
-  if(answer.length == 0) {
-    return false;
+async function checkIfIsBeenWatched(userID, recipeID, spoonacular) {
+  if(userID == undefined || recipeID == undefined || spoonacular == undefined) {
+    throw new Error("bad argument");
   }
-  else {
-    return true;
+  if(spoonacular == 0) {
+    let answer = await DButils.execQuery("SELECT * FROM Watched WHERE userID='" + userID + "' and recipeID='" + recipeID + "'");
+    if(answer.length == 0) {
+      return false;
+    }
+    else {
+      return true;
+    }
+  } else if(spoonacular == 1) {
+    let answer = await DButils.execQuery("SELECT * FROM WatchedSpoonacular WHERE userID='" + userID + "' and recipeID='" + recipeID + "'");
+    if(answer.length == 0) {
+      return false;
+    }
+    else {
+      return true;
+    }
+  } else {
+    next(new Error("not valid spoonacular argument"));
   }
 }
 
@@ -57,17 +77,13 @@ async function checkIfIsFavorite(userID, recipeID) {
 
 async function updateHistory(userID, recipeID) {
   let userHistory = await DButils.execQuery(`SELECT recipe1_ID, recipe2_ID, recipe3_ID FROM Histories WHERE userID='${userID}'`);
-  let { recipe1_ID, recipe2_ID, recipe3_ID} = userHistory[0];
-  if(recipeID == recipe1_ID) {
-    console.log("continue");
-
-  } else if(recipeID == recipe2_ID) {
+  let { recipe1_ID, recipe2_ID } = userHistory[0];
+  if(recipeID == recipe2_ID) {
     DButils.execQuery(
       `UPDATE Histories 
       SET recipe1_ID = '${recipeID}',  recipe2_ID = '${recipe1_ID}'   
       WHERE userID='${userID}'`);
-
-  } else {
+  } else if(recipeID != recipe1_ID){
   DButils.execQuery(
     `UPDATE Histories 
     SET recipe1_ID = '${recipeID}',  recipe2_ID = '${recipe1_ID}', recipe3_ID = '${recipe2_ID}'  
@@ -75,13 +91,27 @@ async function updateHistory(userID, recipeID) {
   }
 }
 
+async function addToWatch(userID, recipeID, spoonacular) {
+  if(spoonacular == undefined || userID == undefined || recipeID == undefined) {
+      next(new Error("user id or recipe id is undefined"))
+  }
+  if(spoonacular == 0) {
+  await DButils.execQuery(`INSERT INTO Watched(userID, recipeID) VALUES ('${userID}', '${recipeID}')`)
+    .catch((error) => new Error(error.message));
+  } else if(spoonacular == 1) {
+    await DButils.execQuery(`INSERT INTO WatchedSpoonacular(userID, recipeID) VALUES ('${userID}', '${recipeID}')`)
+    .catch((error) => new Error(error.message));
+  }
+}
+
 async function transformSpoonacularRecipeAndUpdateHistory(spoonacularRandomRecipes, id) {
     let recipe_data_spooncular = extractDataFromRecipe(spoonacularRandomRecipes);
     if(id)    // check if the request came from a guest or user.
     {   // our data from azure: isFavorite, isBeenWatched
-        recipe_data_spooncular.isBeenWatched = await checkIfIsBeenWatched(id, recipe_data_spooncular.id);
+        recipe_data_spooncular.isBeenWatched = await checkIfIsBeenWatched(id, recipe_data_spooncular.id, 1);
         recipe_data_spooncular.isFavorite = await checkIfIsFavorite(id, recipe_data_spooncular.id);
         updateHistory(id, recipe_data_spooncular.id);
+        addToWatch(id, recipe_data_spooncular.id, 1);
     }
     return recipe_data_spooncular;
 }
@@ -90,7 +120,7 @@ async function transformSpoonacularRecipe(spoonacularRandomRecipes, id) {
   let recipe_data_spooncular = extractDataFromRecipe(spoonacularRandomRecipes);
   if(id)    // check if the request came from a guest or user.
   {   // our data from azure: isFavorite, isBeenWatched
-      recipe_data_spooncular.isBeenWatched = await checkIfIsBeenWatched(id, recipe_data_spooncular.id);
+      recipe_data_spooncular.isBeenWatched = await checkIfIsBeenWatched(id, recipe_data_spooncular.id, 1);
       recipe_data_spooncular.isFavorite = await checkIfIsFavorite(id, recipe_data_spooncular.id);
   }
   return recipe_data_spooncular;
@@ -103,45 +133,67 @@ async function getOurRecipeInfo(recipeID)
 {
   let recipe = await DButils.execQuery("SELECT * FROM Recipes WHERE id='" + recipeID + "'");
   let recipeIngridients =  await DButils.execQuery("SELECT * FROM recipeIngredients, Ingredients WHERE [recipeIngredients].[recipeID]='" + recipeID + "' AND [recipeIngredients].[ingredientID]=[Ingredients].[id]" );
-  console.log(recipeID);
-  console.log({  ...recipe[0] ,  ingridients: {...recipeIngridients} });
   return {...recipe[0],  ingridients:  {...recipeIngridients } };
 }
 
+async function getSpooncularRecipeByID(userID, recipeID) {
+  if(recipeID == undefined)
+  {
+    return;
+  }
+  let spoonacularRecipe = await getRecipeInfo(recipeID);
+  let recipe = await transformSpoonacularRecipe(spoonacularRecipe.data, userID);
+  return recipe;
+};
 
+async function getSpooncularRecipeByIDAndUpdateHistory(userID, recipeID) {
+  let spoonacularRandomRacipe = await getRecipeInfo(recipeID);
+  let recipe = await transformSpoonacularRecipeAndUpdateHistory(spoonacularRandomRacipe.data, userID);
+  return recipe;
+};
+
+async function transformSpoonacularRecipe(spoonacularRandomRecipes, id) {
+  let recipe_data_spooncular = extractDataFromRecipe(spoonacularRandomRecipes);
+  if(id)    // check if the request came from a guest or user.
+  {   // our data from azure: isFavorite, isBeenWatched
+      recipe_data_spooncular.isBeenWatched = await checkIfIsBeenWatched(id, recipe_data_spooncular.id);
+      recipe_data_spooncular.isFavorite = await checkIfIsFavorite(id, recipe_data_spooncular.id);
+  }
+  return recipe_data_spooncular;
+};
+
+async function getRecipeByID(userID, recipeID) {
+  if(recipeID == undefined) {
+    throw new Error("recipe id is undefined.");
+  }
+  let ourRecipe = await getOurRecipeInfo(recipeID);
+  if(userID)    // check if the request came from a guest or user.
+  {   // our data from azure: isFavorite, isBeenWatched
+    ourRecipe.isBeenWatched = await checkIfIsBeenWatched(userID, recipeID, 0);
+  }
+  return { ...ourRecipe};
+}
+
+async function test(userID, recipe) {
+  recipe.isBeenWatched = await checkIfIsBeenWatched(userID, recipe.id, 1);
+  recipe.isFavorite = await checkIfIsFavorite(userID, recipe.id, 1);
+  return recipe;
+}
+
+async function addUserDetails(userID, recipesResult) {
+  if(userID == undefined) {
+    return recipesResult;
+  }
+  let mmm = await Promise.all(recipesResult.map((recipe) => test(userID, recipe)));
+  return mmm;
+};
 
 //------------- END OF OUR RECIPES FUNCTIONS --------------------
 module.exports = {
-  getSpooncularRecipeByID: async function getSpooncularRecipeByID(userID, recipeID) {
-                  if(recipeID == undefined)
-                  {
-                    return;
-                  }
-                  let spoonacularRecipe = await getRecipeInfo(recipeID);
-                  let recipe = await transformSpoonacularRecipe(spoonacularRecipe.data, userID);
-                  return recipe;
-  },
-  getSpooncularRecipeByIDAndUpdateHistory: async function getSpooncularRecipeByIDAndUpdateHistory(userID, recipeID) {
-                  let spoonacularRandomRacipe = await getRecipeInfo(recipeID);
-                  let recipe = await transformSpoonacularRecipeAndUpdateHistory(spoonacularRandomRacipe.data, userID);
-                  return recipe;
-  },
-  transformSpoonacularRecipe: async function transformSpoonacularRecipe(spoonacularRandomRecipes, id) {
-    let recipe_data_spooncular = extractDataFromRecipe(spoonacularRandomRecipes);
-    if(id)    // check if the request came from a guest or user.
-    {   // our data from azure: isFavorite, isBeenWatched
-        recipe_data_spooncular.isBeenWatched = await checkIfIsBeenWatched(id, recipe_data_spooncular.id);
-        recipe_data_spooncular.isFavorite = await checkIfIsFavorite(id, recipe_data_spooncular.id);
-    }
-    return recipe_data_spooncular;
-  },
-  getRecipeByID: async function getRecipeByID(userID, recipeID) {
-    if(recipeID == undefined)
-    {
-      return;
-    }
-
-    let ourRecipe = await getOurRecipeInfo(recipeID);
-    return { ...ourRecipe};
-  }
+  getSpooncularRecipeByID: getSpooncularRecipeByID,
+  getSpooncularRecipeByIDAndUpdateHistory: getSpooncularRecipeByIDAndUpdateHistory,
+  transformSpoonacularRecipe: transformSpoonacularRecipe,
+  getRecipeByID: getRecipeByID,
+  addToWatch: addToWatch,
+  addUserDetails: addUserDetails
 };

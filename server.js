@@ -13,8 +13,6 @@ var fs = require('fs');
 // --------------------
 
 
-const api_domain = "https://api.spoonacular.com/recipes";
-
 // initial express for handling GET & POST request
 const app = express()
 app.use(logger("dev")); //logger
@@ -24,8 +22,8 @@ app.use(cookieParser()); //Parse the cookies into the req.cookies
 app.use(session({
                 cookieName: "session", // the cookie key name
                 secret: process.env.COOKIE_SECRET, // the encryption key
-                duration: 20 * 60 * 1000, // expired after 20 minutes
-                activeDuration: 1000 * 60 * 5 // if expiresIn < activeDuration,
+                duration: 24 * 60 * 60 * 1000, // expired after 20 minutes
+                activeDuration: 1000 * 30 // if expiresIn < activeDuration,
                 //the session will be extended by activeDuration milliseconds
   })
 );
@@ -43,8 +41,8 @@ app.use(async (req, res, next) => {
     await DButils.execQuery("SELECT id FROM Users").then((user) => {
       if (user.find((x) => x.id === req.session.id)) {
           req.id = req.session.id;
-          // req.session.id = req.session.id; // refresh the session value
-          // res.locals.id = req.session.id;
+          req.session.id = req.session.id; // refresh the session value
+          res.locals.id = req.session.id;
       }
   }).catch((error) => {throw {error}} );
   } next();
@@ -74,7 +72,7 @@ function readJSONFromDisc()
 
 
 async function getRandomRecipes() {
-  return await axios.get(`${api_domain}/random`, {
+  return await axios.get(`${process.env.api_domain}/random`, {
     params: {
       apiKey: process.env.spooncular_apiKey,
       number: process.env.numberOfRandom
@@ -92,7 +90,6 @@ function checkIfThereIsInstractions(recipes) {
   }
   return true;
 }
-
 
 function getInstruction(instruction) {
   let { number, step, ingredients } = instruction;
@@ -112,12 +109,17 @@ async function getHistory(userID)
 {
   let recipesIDs = await DButils.execQuery("SELECT recipe1_ID, recipe2_ID, recipe3_ID FROM Histories WHERE userID='" + userID + "'");
   let {recipe1_ID, recipe2_ID, recipe3_ID} = recipesIDs[0];
-  let recipesList = [recipe1_ID, recipe2_ID, recipe3_ID];
+  let allRecipesList = [recipe1_ID, recipe2_ID, recipe3_ID];
+  let recipesList = [];
+  for (let index = 0; index < allRecipesList.length; index++) {
+    if(allRecipesList[index] != -1) {
+      recipesList.push(allRecipesList[index]);
+    }
+  }
   let userRecipesHistories = recipesList.map((currentRecipeID) => Utils.getSpooncularRecipeByID(userID, currentRecipeID));
-  return Promise.all(userRecipesHistories).then(function(result) {
-    return result;
-  })
-  
+  return Promise.all(userRecipesHistories)
+  .then(function(result) {return result})
+  .catch(new Error("couldnt retrieve all recipes"));
 }
 
 // - - - - - - - - - - - - - -end of functions - - - - - - - - - - - - - - - 
@@ -160,9 +162,3 @@ const port = process.env.PORT || 3000; //environment variable
 app.listen(port, () => {
 	console.log(`Listening on port ${port}`);
 });
-
-//#region promise Version
-// const query = `SELECT * FROM dbo.users`; // const query = `INSERT INTO dbo.users (username,password) VALUES  ('a','a')`;
-// DButils.execQuery(query)
-//   .then((res) => isConatin(res))
-//   .catch((error) => console.log(error.message));
