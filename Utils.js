@@ -25,7 +25,7 @@ function getInstruction(instruction) {
 }
 
 function extractDataFromRecipe(recipeDataSpooncular) {
-  let { id, servings, image, title, readyInMinutes, vegan, vegetarian, aggregateLikes } = recipeDataSpooncular;
+  let { id, servings, image, title, readyInMinutes, vegan, glutenFree, vegetarian, aggregateLikes } = recipeDataSpooncular;
   let { extendedIngredients } = recipeDataSpooncular;
   let ingredients = extendedIngredients.map((ingredient) => getIngredient(ingredient));
   let { analyzedInstructions } = recipeDataSpooncular;
@@ -36,7 +36,8 @@ function extractDataFromRecipe(recipeDataSpooncular) {
   } else {
     instructions = analyzedInstructions[0].steps.map((step) => getInstruction(step));
   }
-  return { id, servings, image, title, readyInMinutes, vegan, vegetarian, aggregateLikes, instructions, ingredients };
+  let spoonacular = 1;
+  return { id, servings, image, title, readyInMinutes, vegan, vegetarian, glutenFree, aggregateLikes, instructions, ingredients, spoonacular };
     //instructions, ingredients, serving, id, image, title, readyInMinutes, vegan, vegetarian, aggregateLikes
 }
 
@@ -133,6 +134,11 @@ async function getOurRecipeInfo(recipeID)
 {
   let recipe = await DButils.execQuery("SELECT * FROM Recipes WHERE id='" + recipeID + "'");
   let recipeIngridients =  await DButils.execQuery("SELECT * FROM recipeIngredients, Ingredients WHERE [recipeIngredients].[recipeID]='" + recipeID + "' AND [recipeIngredients].[ingredientID]=[Ingredients].[id]" );
+  if(recipe.glutenFree == 0) {
+    recipe.glutenFree = False
+  } else if(recipe.glutenFree == 1) {
+    recipe.glutenFree = True;
+  }
   return {...recipe[0],  ingridients:  {...recipeIngridients } };
 }
 

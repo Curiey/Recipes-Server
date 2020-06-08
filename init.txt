@@ -19,19 +19,11 @@ CREATE TABLE Recipes(
                     aggregateLikes INT DEFAULT 0 NOT NULL,
                     vegan INT NOT NULL,
                     vegetarian INT NOT NULL,
+                    glutenFree INT NOT NULL,
                     instructions NVARCHAR(max) NOT NULL,
                     serving INT NOT NULL,
                     image NVARCHAR(max) NOT NULL,
                     FOREIGN KEY (userID) REFERENCES Users(id) 
-)
-
------------------------------Favorites-----------------------------
-CREATE TABLE Favorites(
-                    userID INT NOT NULL,
-                    recipeID INT NOT NULL,
-	                PRIMARY KEY("userID","recipeID"),
-                    FOREIGN KEY (userID) REFERENCES Users(id),
-                    FOREIGN KEY (recipeID) REFERENCES Recipes(id) 
 )
 
 -----------------------------FavoritesSpoonacular-----------------------------
@@ -75,45 +67,44 @@ CREATE TABLE recipeIngredients(
                     FOREIGN KEY (ingredientID) REFERENCES Ingredients(id) 
 )
 
-	
------------------------------PersonalRecipes-----------------------------
-CREATE TABLE PersonalRecipes(
+-----------------------------OurFamilyRecipes-----------------------------
+CREATE TABLE OurFamilyRecipes(
                     id INT IDENTITY PRIMARY KEY NOT NULL,
                     userID INT NOT NULL,
+                    chefName NVARCHAR(20),
                     title NVARCHAR(30) NOT NULL,
+                    occasion NVARCHAR(30),
                     readyInMinutes INT NOT NULL,
                     aggregateLikes INT DEFAULT 0 NOT NULL,
                     vegan INT NOT NULL,
                     vegetarian INT NOT NULL,
+                    glutenFree INT NOT NULL,
                     instructions NVARCHAR(max) NOT NULL,
                     serving INT NOT NULL,
                     image NVARCHAR(max) NOT NULL,
                     FOREIGN KEY (userID) REFERENCES Users(id) 
 )
 
-
 -----------------------------Histories-----------------------------
 CREATE TABLE Histories (
 userID INT NOT NULL PRIMARY KEY,
-recipe1_ID INT,
-recipe2_ID INT,
-recipe3_ID INT,
+recipe1_ID INT default -1,
+recipe2_ID INT default -1,
+recipe3_ID INT default -1,
 FOREIGN KEY (userID) REFERENCES Users(id))
 
 
 
+
+
+
+-----------------------------DROP TABLES-----------------------------
 DROP TABLE Histories
 DROP TABLE FavoritesSpoonacular
-DROP TABLE Favorites
 DROP TABLE WatchedSpoonacular
 DROP TABLE Watched
 DROP TABLE recipeIngredients
 DROP TABLE Ingredients
 DROP TABLE Recipes
-DROP TABLE PersonalRecipes
+DROP TABLE OurFamilyRecipes
 DROP TABLE Users
-
-UPDATE [dbo].[Histories]
-SET recipe1_ID = 1, recipe2_ID = 2, recipe3_ID = 3
-WHERE userID = 8
-
