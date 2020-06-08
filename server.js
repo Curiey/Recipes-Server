@@ -100,7 +100,11 @@ function getInstruction(instruction) {
 async function transformSpoonacularRecipes(spoonacularRandomRecipes, userID) {
   let result =  await spoonacularRandomRecipes.map((currentSpoonacularRacipe) => Utils.transformSpoonacularRecipe(currentSpoonacularRacipe, userID));
   return Promise.all(result).then(function(result) {
-    return result;
+    recipeList = [];
+    for (let index = 0; index < result.length; index++) {
+      recipeList.push(result[index]);
+    }
+    return recipeList;
   })
   // let instructions = analyzedInstructions[0].steps.map((step) => getInstruction(step));
 }
@@ -110,6 +114,8 @@ async function getHistory(userID)
   let recipesIDs = await DButils.execQuery("SELECT recipe1_ID, recipe2_ID, recipe3_ID FROM Histories WHERE userID='" + userID + "'");
   let {recipe1_ID, recipe2_ID, recipe3_ID} = recipesIDs[0];
   let allRecipesList = [recipe1_ID, recipe2_ID, recipe3_ID];
+
+  // check which recipes is valid recipeID
   let recipesList = [];
   for (let index = 0; index < allRecipesList.length; index++) {
     if(allRecipesList[index] != -1) {
@@ -118,34 +124,58 @@ async function getHistory(userID)
   }
   let userRecipesHistories = recipesList.map((currentRecipeID) => Utils.getSpooncularRecipeByID(userID, currentRecipeID));
   return Promise.all(userRecipesHistories)
-  .then(function(result) {return result})
+  .then(function(result) {
+    let fullRecipesAsList = [];
+    for (let index = 0; index < recipesList.length; index++) {
+      fullRecipesAsList.push(result[index]);
+    }
+    return fullRecipesAsList;
+  })
   .catch(new Error("couldnt retrieve all recipes"));
 }
 
 // - - - - - - - - - - - - - -end of functions - - - - - - - - - - - - - - - 
 
+// (EXPLORE)Get random recipes
+app.get("/getRandomRecipes/explore"), async function(req, res) {
+  let spoonacularRandomRecipes = await getRandomRecipes();
+
+  while(!checkIfThereIsInstractions(spoonacularRandomRecipes)) {
+    spoonacularRandomRecipes = await getRandomRecipes();
+  }
+  let randomRecipes = await transformSpoonacularRecipes(spoonacularRandomRecipes, req.id);
+  let respond = { RandomRecipes: {...randomRecipes}};
+
+  res.status(200).send(respond);
+}
+
 // Welcome
-app.get("/", async function (req, res) {
+app.get("/", async function (req, res, next) {
+
   //TODO: return it later ! ! !
-  // let spoonacularRandomRecipes = await getRandomRecipes();
+  let spoonacularRandomRecipes = await getRandomRecipes();
   //  writeJSONToDisc(spoonacularRandomRecipes.data.recipes);
-
-
   //TODO: delete later ! ! !
-  let spoonacularRandomRecipes = readJSONFromDisc()
-
+  // let spoonacularRandomRecipes = readJSONFromDisc()
 
   while(!checkIfThereIsInstractions(spoonacularRandomRecipes)) { //TODO: after removing the read/write from disc change back to spoonacularRandomRecipes.data.recipes
     spoonacularRandomRecipes = await getRandomRecipes();
-    writeJSONToDisc(spoonacularRandomRecipes.data.recipes);
+    // writeJSONToDisc(spoonacularRandomRecipes.data.recipes);
   }
 
-
-  let randomRecipes = await transformSpoonacularRecipes(spoonacularRandomRecipes, req.id); //TODO: after removing the read/write from disc change back to spoonacularRandomRecipes.data.recipes
-  let respond = { RandomRecipes: {...randomRecipes}};
+  let randomRecipes = await transformSpoonacularRecipes(spoonacularRandomRecipes.data.recipes, req.id) //TODO: after removing the read/write from disc change back to spoonacularRandomRecipes.data.recipes
+  .catch((error) => next(error));
+  let randomRecpesList = []
+  randomRecipes.map((arg) => randomRecpesList.push(arg));
+  let respond = { RandomRecipes: randomRecpesList};
   if(req.id) {
-    let lastRecipesViewed = await getHistory(req.id);
-    respond.LastRecipedViewed = {...lastRecipesViewed};
+    let lastRecipesViewed = await getHistory(req.id)
+    .catch((error) => next(error));
+    let lastRecipesViewedList = [];
+    lastRecipesViewed.map((arg) => lastRecipesViewedList.push(arg));
+    respond.LastRecipedViewed = lastRecipesViewedList;
+  } else {
+    respond.LastRecipedViewed = [];
   }
   res.status(200).send(respond);
 });

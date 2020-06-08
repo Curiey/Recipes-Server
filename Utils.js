@@ -46,7 +46,8 @@ async function checkIfIsBeenWatched(userID, recipeID, spoonacular) {
     throw new Error("bad argument");
   }
   if(spoonacular == 0) {
-    let answer = await DButils.execQuery("SELECT * FROM Watched WHERE userID='" + userID + "' and recipeID='" + recipeID + "'");
+    let answer = await DButils.execQuery("SELECT * FROM Watched WHERE userID='" + userID + "' and recipeID='" + recipeID + "'")
+                              .catch((error) => console.log("user already watch this recipe, cannot add another record."));;
     if(answer.length == 0) {
       return false;
     }
@@ -54,7 +55,8 @@ async function checkIfIsBeenWatched(userID, recipeID, spoonacular) {
       return true;
     }
   } else if(spoonacular == 1) {
-    let answer = await DButils.execQuery("SELECT * FROM WatchedSpoonacular WHERE userID='" + userID + "' and recipeID='" + recipeID + "'");
+    let answer = await DButils.execQuery("SELECT * FROM WatchedSpoonacular WHERE userID='" + userID + "' and recipeID='" + recipeID + "'")
+                        .catch((error) => console.log("user already watch this recipe, cannot add another record."));
     if(answer.length == 0) {
       return false;
     }
@@ -98,10 +100,10 @@ async function addToWatch(userID, recipeID, spoonacular) {
   }
   if(spoonacular == 0) {
   await DButils.execQuery(`INSERT INTO Watched(userID, recipeID) VALUES ('${userID}', '${recipeID}')`)
-    .catch((error) => new Error(error.message));
+  .catch((error) => console.log("user already watch this recipe, cannot add another record."));
   } else if(spoonacular == 1) {
     await DButils.execQuery(`INSERT INTO WatchedSpoonacular(userID, recipeID) VALUES ('${userID}', '${recipeID}')`)
-    .catch((error) => new Error(error.message));
+    .catch((error) => console.log("user already watch this recipe, cannot add another record."));
   }
 }
 
@@ -130,16 +132,28 @@ async function transformSpoonacularRecipe(spoonacularRandomRecipes, id) {
 //------------- END OF SPOONCULAR FUNCTIONS --------------------
 
 //-------------OUR RECIPES FUNCTIONS --------------------
+
+function transformBinaryToBoolean(binary) {
+  if(binary == 0) {
+    return "false";
+  } else if(binary == 1) {
+    return "true";
+  } else {
+    new Error("not valid binary argument (not 0 or 1)");
+  }
+}
+
 async function getOurRecipeInfo(recipeID)
 {
-  let recipe = await DButils.execQuery("SELECT * FROM Recipes WHERE id='" + recipeID + "'");
+  let result = await DButils.execQuery("SELECT * FROM Recipes WHERE id='" + recipeID + "'");
+  let recipe = result[0];
   let recipeIngridients =  await DButils.execQuery("SELECT * FROM recipeIngredients, Ingredients WHERE [recipeIngredients].[recipeID]='" + recipeID + "' AND [recipeIngredients].[ingredientID]=[Ingredients].[id]" );
-  if(recipe.glutenFree == 0) {
-    recipe.glutenFree = False
-  } else if(recipe.glutenFree == 1) {
-    recipe.glutenFree = True;
-  }
-  return {...recipe[0],  ingridients:  {...recipeIngridients } };
+
+  recipe.vegan = transformBinaryToBoolean(recipe.vegan);
+  recipe.vegetarian = transformBinaryToBoolean(recipe.vegetarian); 
+  recipe.glutenFree = transformBinaryToBoolean(recipe.glutenFree);
+  
+  return {...recipe,  ingridients:  {...recipeIngridients } };
 }
 
 async function getSpooncularRecipeByID(userID, recipeID) {
@@ -162,7 +176,7 @@ async function transformSpoonacularRecipe(spoonacularRandomRecipes, id) {
   let recipe_data_spooncular = extractDataFromRecipe(spoonacularRandomRecipes);
   if(id)    // check if the request came from a guest or user.
   {   // our data from azure: isFavorite, isBeenWatched
-      recipe_data_spooncular.isBeenWatched = await checkIfIsBeenWatched(id, recipe_data_spooncular.id);
+      recipe_data_spooncular.isBeenWatched = await checkIfIsBeenWatched(id, recipe_data_spooncular.id ,1);
       recipe_data_spooncular.isFavorite = await checkIfIsFavorite(id, recipe_data_spooncular.id);
   }
   return recipe_data_spooncular;
@@ -175,7 +189,7 @@ async function getRecipeByID(userID, recipeID) {
   let ourRecipe = await getOurRecipeInfo(recipeID);
   if(userID)    // check if the request came from a guest or user.
   {   // our data from azure: isFavorite, isBeenWatched
-    ourRecipe.isBeenWatched = await checkIfIsBeenWatched(userID, recipeID, 0);
+    ourRecipe.isBeenWatched = await checkIfIsBeenWatched(userID, recipeID, 0)
   }
   return { ...ourRecipe};
 }

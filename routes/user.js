@@ -29,11 +29,10 @@ router.post("/register", async (req, res, next) => {
       `INSERT INTO Users VALUES ('${req.body.username}', '${req.body.firstName}', '${req.body.lastName}', '${req.body.country}', '${hash_password}', '${req.body.email}', '${req.body.image}')`
     );
 
-
     const userID = await DButils.execQuery(`SELECT id FROM Users WHERE username = '${req.body.username}'`);
 
     await DButils.execQuery(`INSERT INTO Histories(userID) VALUES ('${userID[0].id}')`);
-
+    res.redirect('/'); //change path to welcome where login is at
     res.status(201).send({ message: "user created", success: true });
   } catch (error) {
     next(error);

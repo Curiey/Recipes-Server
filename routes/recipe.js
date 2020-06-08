@@ -13,7 +13,7 @@ router.get("/:id/information", async function (req, res, next) {
     let recipe = await Utils.getRecipeByID(req.id, recipeID);
     if(req.id) {
       await Utils.addToWatch(req.id, recipeID, 0)
-      .catch((error) => next(error));
+      .catch((error) => console.log("user already watch this recipe, cannot add another record."));
     }
     res.status(200).send({ ...recipe });
   } else if(req.query.spoonacular == 1) {

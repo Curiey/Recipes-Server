@@ -35,13 +35,28 @@ router.get("/viewMyRecipes", function (req, res) {
   res.send(req.originalUrl);
 });
 
+function transformBooleanToBinary(boolean) {
+  if(boolean == "true") {
+    return 1;
+  } else if(boolean == "false") {
+    return 0;
+  } else {
+    new Error("not valid boolean argument (not 0 or 1)");
+  }
+}
+
 router.post("/createRecipe", async function (req, res) {
-  let {title, readyInMinutes, vegan, vegetarian, instructions, serving, image } = req.body;
-  if(title == undefined || readyInMinutes == undefined || vegan == undefined || vegetarian == undefined || instructions == undefined || serving == undefined || image == undefined ) throw { status: 400, message: "one of the argument is not specified." };
+  let {title, readyInMinutes, vegan, vegetarian, glutenFree, instructions, serving, image } = req.body;
+  if(title == undefined || readyInMinutes == undefined || vegan == undefined || vegetarian == undefined || glutenFree == undefined || instructions == undefined || serving == undefined || image == undefined ) throw { status: 400, message: "one of the argument is not specified." };
+  
+  // vegan - transform binary to boolean
+  vegan = transformBooleanToBinary(vegan);
+  vegetarian = transformBooleanToBinary(vegetarian);
+  glutenFree = transformBooleanToBinary(glutenFree);
 
   try {
       await DButils.execQuery(
-        `INSERT INTO Recipes VALUES ('${req.id}', '${title}', '${readyInMinutes}', 0, '${vegan}', '${vegetarian}', '${instructions}', '${serving}', '${image}')`
+        `INSERT INTO Recipes VALUES ('${req.id}', '${title}', '${readyInMinutes}', 0, '${vegan}', '${vegetarian}', '${glutenFree}', '${instructions}', '${serving}', '${image}')`
       ).catch((error) => next(error));
       res.status(200).send({ message: "recipe created", sucess: true });
     } catch (error) {
