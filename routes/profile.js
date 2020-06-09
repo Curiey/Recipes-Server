@@ -13,26 +13,38 @@ router.get("/viewFavorites", async function (req, res, next) {
   if(!req.id) {
       next(new Error("not autorize user."));
   }
-
   let recipes = {
     "recipeList": []
   };
-
   // favorites recipes taken from spooncular
   let favoritesIDsSpooncular = await DButils.execQuery("SELECT recipeID FROM FavoritesSpoonacular WHERE userID='" + req.id + "'");
   let favoritsRecipesSpooncular = favoritesIDsSpooncular.map((recipeID) => Utils.getSpooncularRecipeByID(req.id, recipeID.recipeID));
-
   await Promise.all(favoritsRecipesSpooncular)
+  .then((result) => {
+    result.forEach((recipe) => recipes.recipeList.push(recipe));
+  })
+  .catch((error) => res.send({ status: 401, message: error.message }));
+  res.status(200).send(recipes);
+});
+  
+router.get("/viewMyRecipes", async function (req, res) {
+  if(!req.id) {
+      next(new Error("not autorize user."));
+  }
+  let recipes = {
+    "recipeList": []
+  };
+  // favorites recipes taken from spooncular
+  let userRecpiesIds = await DButils.execQuery("SELECT id FROM Recipes WHERE userID='" + req.id + "'");
+  let userRecpies = userRecpiesIds.map((recipuserRecpiesIdseID) => Utils.getRecipeByID(req.id, recipuserRecpiesIdseID.id));
+
+  await Promise.all(userRecpies)
   .then((result) => {
     result.forEach((recipe) => recipes.recipeList.push(recipe));
   })
   .catch((error) => res.send({ status: 401, message: error.message }));
 
   res.status(200).send(recipes);
-});
-  
-router.get("/viewMyRecipes", function (req, res) {
-  res.send(req.originalUrl);
 });
 
 function transformBooleanToBinary(boolean) {
@@ -45,9 +57,42 @@ function transformBooleanToBinary(boolean) {
   }
 }
 
-router.post("/createRecipe", async function (req, res) {
-  let {title, readyInMinutes, vegan, vegetarian, glutenFree, instructions, serving, image } = req.body;
-  if(title == undefined || readyInMinutes == undefined || vegan == undefined || vegetarian == undefined || glutenFree == undefined || instructions == undefined || serving == undefined || image == undefined ) throw { status: 400, message: "one of the argument is not specified." };
+async function getIngredientByName(indregiantName) {
+  let result =  await DButils.execQuery(`SELECT id FROM Ingredients WHERE  name='${indregiantName}'`)
+  if(result.length > 0) {
+    return result[0];
+  }
+  return undefined;
+}
+
+async function createNewIngredient(indregiantName) {
+  if(indregiantName == undefined) new Error("cannot insert ingredient without name.");
+  await DButils.execQuery(`INSERT INTO Ingredients(name) VALUES ('${indregiantName}') SELECT SCOPE_IDENTITY()`)
+  .then((ingredientID) => {return ingredientID})
+  .catch((error) => next(error));
+}
+
+async function addIngredientToRecipe(recipeID, ingredient) {
+  let ingredientID = await getIngredientByName(ingredient.name);
+  if(ingredientID == undefined) {
+    ingredientID = await createNewIngredient(ingredient.name)
+    .catch((error) => console.log("could not create new indregiant"));
+  }
+  let { amount, unit } = ingredient;
+  await DButils.execQuery(`INSERT INTO RecipeIngredients(recipeID, ingredientID, amount, unit) VALUES ('${recipeID}', '${ingredientID}', '${amount}', '${unit}') SELECT SCOPE_IDENTITY() AS id`)
+  .then((recipeID) => addIngredients(recipeID, ingredients))
+  .catch((error) => next(error));
+}
+
+function addIngredients(recipe, ingredients) {
+  if(recipe == undefined) new Error("got bad argument. recipeID cannot be found.")
+  let { id } = recipe[0];
+  ingredients.map((ingredient) => addIngredientToRecipe(id, ingredient));
+}
+
+router.post("/createRecipe", async function (req, res, next) {
+  let {title, readyInMinutes, vegan, vegetarian, glutenFree, instructions, ingredients, serving, image } = req.body;
+  if(title == undefined || readyInMinutes == undefined || vegan == undefined || vegetarian == undefined || glutenFree == undefined || instructions == undefined || serving == undefined || image == undefined || ingredients == undefined ) throw { status: 400, message: "one of the argument is not specified." };
   
   // vegan - transform binary to boolean
   vegan = transformBooleanToBinary(vegan);
@@ -55,9 +100,9 @@ router.post("/createRecipe", async function (req, res) {
   glutenFree = transformBooleanToBinary(glutenFree);
 
   try {
-      await DButils.execQuery(
-        `INSERT INTO Recipes VALUES ('${req.id}', '${title}', '${readyInMinutes}', 0, '${vegan}', '${vegetarian}', '${glutenFree}', '${instructions}', '${serving}', '${image}')`
-      ).catch((error) => next(error));
+      await DButils.execQuery(`INSERT INTO Recipes(userID, title, readyInMinutes, aggregateLikes, vegan, vegetarian, glutenFree, instructions, serving, image) VALUES ('${req.id}', '${title}', '${readyInMinutes}', '0', '${vegan}', '${vegetarian}', '${glutenFree}', '${instructions}', '${serving}', '${image}') SELECT SCOPE_IDENTITY() AS id`)
+      .then((recipeID) => addIngredients(recipeID, ingredients))
+      .catch((error) => next(error));
       res.status(200).send({ message: "recipe created", sucess: true });
     } catch (error) {
       next(error);

@@ -36,7 +36,7 @@ const user = require("./routes/user");
 
 //#region global simple
 app.use(async (req, res, next) => {
-  console.log("app.use");
+  console.log("new user connection");
   if(req.session && req.session.id != undefined) {
     await DButils.execQuery("SELECT id FROM Users").then((user) => {
       if (user.find((x) => x.id === req.session.id)) {

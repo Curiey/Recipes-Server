@@ -57,7 +57,7 @@ CREATE TABLE Ingredients(
 )
 
 -----------------------------recipe-Ingredients-----------------------------
-CREATE TABLE recipeIngredients(
+CREATE TABLE RecipeIngredients(
                     recipeID INT NOT NULL,
                     ingredientID INT NOT NULL,
                     amount INT NOT NULL,

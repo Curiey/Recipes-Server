@@ -14,8 +14,8 @@ async function getRecipeInfo(id) {
 }
 
 function getIngredient(ingredient) {
-let { id, name } = ingredient;
-return { id, name };
+let { id, name, unit, amount } = ingredient;
+return { id, name, unit, amount, };
 }
   
 function getInstruction(instruction) {
@@ -214,6 +214,6 @@ module.exports = {
   getSpooncularRecipeByIDAndUpdateHistory: getSpooncularRecipeByIDAndUpdateHistory,
   transformSpoonacularRecipe: transformSpoonacularRecipe,
   getRecipeByID: getRecipeByID,
-  addToWatch: addToWatch,
+  addToWatch: getRecipeByID,
   addUserDetails: addUserDetails
 };
