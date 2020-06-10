@@ -170,24 +170,6 @@ router.post("/addToFavorites", async function (req, res) {
 });
 
 
-/**
- * handler for http request for adding a recipe to the list that
- * a registered user watched in the DB.
- */
-router.post("/addToWatched", async function (req, res) {
-  let { spoonacular, recipeID } = req.body;
-  if( spoonacular == undefined || recipeID == undefined || res.id ) throw { status: 400, message: "one of the argument is not specified." };
-
-  if(spoonacular == 0) {  //Our recipe
-    await DButils.execQuery(`INSERT INTO Watched VALUES ('${req.id}', '${recipeID}')`)
-    .catch((error) => next(error));
-  } else if(spoonacular == 1) { // sponcular recipe
-    await DButils.execQuery(`INSERT INTO WatchedSpoonacular VALUES ('${req.id}', '${recipeID}')`)
-    .catch((error) => next(error))
-  }
-  res.status(201).send({ message: "recipe added seccessfuly", sucess: true });
-});
-
 
 /**
  * default error handler.

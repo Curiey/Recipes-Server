@@ -161,6 +161,18 @@ async function addToWatch(userID, recipeID, spoonacular) {
     await DButils.execQuery(`INSERT INTO WatchedSpoonacular(userID, recipeID) VALUES ('${userID}', '${recipeID}')`)
     .catch((error) => console.log("user already watch this recipe, cannot add another record."));
   }
+  // let { spoonacular, recipeID } = req.body;
+  // if( spoonacular == undefined || recipeID == undefined || res.id ) throw { status: 400, message: "one of the argument is not specified." };
+
+  // spoonacular = Utils.transformBinaryToBoolean(spoonacular);
+  // if(spoonacular == "false") {  //Our recipe
+  //   await DButils.execQuery(`INSERT INTO Watched VALUES ('${req.id}', '${recipeID}')`)
+  //   .catch((error) => next(error));
+  // } else if(spoonacular == "true") { // sponcular recipe
+  //   await DButils.execQuery(`INSERT INTO WatchedSpoonacular VALUES ('${req.id}', '${recipeID}')`)
+  //   .catch((error) => next(error))
+  // }
+  // res.status(201).send({ message: "recipe added seccessfuly", sucess: true });
 }
 
 
@@ -336,6 +348,6 @@ module.exports = {
   getSpooncularRecipeByIDAndUpdateHistory: getSpooncularRecipeByIDAndUpdateHistory,
   transformSpoonacularRecipe: transformSpoonacularRecipe,
   getRecipeByID: getRecipeByID,
-  addToWatch: getRecipeByID,
+  addToWatch: addToWatch,
   addUserDetails: addUserDetails
 };

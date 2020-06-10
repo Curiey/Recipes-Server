@@ -12,7 +12,7 @@ const bcrypt = require("bcrypt");
  * add him to the DB.
  */
 router.post("/register", async (req, res, next) => {
-  if(req.id != undefined) throw { status: 401, message: "user already logged in. please logout first." };
+  if(req.id != undefined) throw { status: 401, message: "User already logged in." };
 
   try {
     // parameters exists
@@ -67,7 +67,7 @@ router.post("/login", async (req, res, next) => {
       )[0];
   
       if (!bcrypt.compareSync(req.body.password, user.password)) {
-        throw { status: 401, message: "Username or Password incorrect" };
+        throw { status: 401, message: "Username or Password incorrect." };
       }
   
       // Set cookie
