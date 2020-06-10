@@ -1,14 +1,26 @@
+/**
+ * this class is responsible for handeling all the logged in (profile) logic.
+ */
+
 var express = require("express");
 var router = express.Router();
 const DButils = require("../DButils");
 const Utils = require("../Utils");
 
 
+/**
+ * middleware.
+ * this middleware checks if all the http request that routed to profile class are
+ * made by a registered user.
+ */
 router.use((req, res, next) => {
     if(req.id != undefined) next();
     else throw { status: 401, message: "unauthorized" };
 })
 
+/**
+ * handler for http request pulling the favorite recipes of a user
+ */
 router.get("/viewFavorites", async function (req, res, next) {
   if(!req.id) {
       next(new Error("not autorize user."));
@@ -27,6 +39,11 @@ router.get("/viewFavorites", async function (req, res, next) {
   res.status(200).send(recipes);
 });
   
+
+/**
+ * handler for http request pulling the recipes that
+ * uploaded by the user.
+ */
 router.get("/viewMyRecipes", async function (req, res) {
   if(!req.id) {
       next(new Error("not autorize user."));
@@ -47,6 +64,12 @@ router.get("/viewMyRecipes", async function (req, res) {
   res.status(200).send(recipes);
 });
 
+
+/**
+ * this function tranfrom a boolean value to binary value.
+ * true to 1. false to 0.
+ * @param boolean - a given boolean value.
+ */
 function transformBooleanToBinary(boolean) {
   if(boolean == "true") {
     return 1;
@@ -57,6 +80,11 @@ function transformBooleanToBinary(boolean) {
   }
 }
 
+/**
+ * this asynchronous function pulls from the DB an Ingredient by
+ * the Ingredient name.
+ * @param indregiantName - a given ingredient name.
+ */
 async function getIngredientByName(indregiantName) {
   let result =  await DButils.execQuery(`SELECT id FROM Ingredients WHERE  name='${indregiantName}'`)
   if(result.length > 0) {
@@ -65,6 +93,10 @@ async function getIngredientByName(indregiantName) {
   return undefined;
 }
 
+/**
+ * this asynchronous function adds to the DB a new Ingredient.
+ * @param indregiantName - a given Ingredient name.
+ */
 async function createNewIngredient(indregiantName) {
   if(indregiantName == undefined) new Error("cannot insert ingredient without name.");
   await DButils.execQuery(`INSERT INTO Ingredients(name) VALUES ('${indregiantName}') SELECT SCOPE_IDENTITY()`)
@@ -72,6 +104,10 @@ async function createNewIngredient(indregiantName) {
   .catch((error) => next(error));
 }
 
+/**
+ * this asynchronous function adds to a given recipe by a recipe ID a
+ * single ingredient in the DB.
+ */
 async function addIngredientToRecipe(recipeID, ingredient) {
   let ingredientID = await getIngredientByName(ingredient.name);
   if(ingredientID == undefined) {
@@ -84,12 +120,23 @@ async function addIngredientToRecipe(recipeID, ingredient) {
   .catch((error) => next(error));
 }
 
+/**
+ * this function gets a recipe and a list of ingredients and adds
+ * all the ingredients to to the recipe.
+ * @param recipe - a given recipe.
+ * @param ingredients - a given list of ingredients.
+ */
 function addIngredients(recipe, ingredients) {
   if(recipe == undefined) new Error("got bad argument. recipeID cannot be found.")
   let { id } = recipe[0];
   ingredients.map((ingredient) => addIngredientToRecipe(id, ingredient));
 }
 
+
+/**
+ * handler for http request for uploading a new recipe by
+ * a registered user.
+ */
 router.post("/createRecipe", async function (req, res, next) {
   let {title, readyInMinutes, vegan, vegetarian, glutenFree, instructions, ingredients, serving, image } = req.body;
   if(title == undefined || readyInMinutes == undefined || vegan == undefined || vegetarian == undefined || glutenFree == undefined || instructions == undefined || serving == undefined || image == undefined || ingredients == undefined ) throw { status: 400, message: "one of the argument is not specified." };
@@ -109,6 +156,11 @@ router.post("/createRecipe", async function (req, res, next) {
     }
 });
 
+
+/**
+ * handler for http request for adding a new favorite recipe
+ * to a registered user.
+ */
 router.post("/addToFavorites", async function (req, res) {
   let { recipeID } = req.body;
   if( recipeID == undefined || req.id == undefined ) throw { status: 400, message: "one of the argument is not specified." };
@@ -117,6 +169,11 @@ router.post("/addToFavorites", async function (req, res) {
   .catch((error) => {throw {  status: 409, message: "recipe already marked as favorite by the user"}});
 });
 
+
+/**
+ * handler for http request for adding a recipe to the list that
+ * a registered user watched in the DB.
+ */
 router.post("/addToWatched", async function (req, res) {
   let { spoonacular, recipeID } = req.body;
   if( spoonacular == undefined || recipeID == undefined || res.id ) throw { status: 400, message: "one of the argument is not specified." };
@@ -132,7 +189,9 @@ router.post("/addToWatched", async function (req, res) {
 });
 
 
-// Catch all error and send to client
+/**
+ * default error handler.
+ */
 router.use(function (err, req, res, next) {
   console.error(err);
   res.status(err.status || 500).send({ message: err.message, success: false });

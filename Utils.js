@@ -1,3 +1,8 @@
+/**
+ * this class contains a function that are used in multiply different classes
+ * to avoid duplicate code.
+ */
+
 const DButils = require("./DButils");
 const axios = require("axios");
 
@@ -5,6 +10,12 @@ const api_domain = "https://api.spoonacular.com/recipes";
 
 
 //------------- SPOONCULAR FUNCTIONS --------------------
+
+/**
+ * this asynchronous function pulls from the spoonacular API a recipe
+ * by a given recipe ID.
+ * @param  id = the given recipe ID.
+ */
 async function getRecipeInfo(id) {
   return axios.get(`${process.env.api_domain}/${id}/information`, {
     params: {
@@ -13,17 +24,33 @@ async function getRecipeInfo(id) {
   })
 }
 
+/**
+ * this function extract the ingredients from the a JSON object that
+ * retrieved from the spoonacular API.
+ * @param ingredient - a guven JSON object that contains the ingredient values.
+ */
 function getIngredient(ingredient) {
 let { id, name, unit, amount } = ingredient;
 return { id, name, unit, amount, };
 }
   
+/**
+ * this function extract all the ingredients instruction from a JSON object
+ * that retrueved from the spoonacular API.
+ * @param  instruction - a given JSON object that contains the instruction values.
+ */
 function getInstruction(instruction) {
     let { number, step, ingredients } = instruction;
     ingredients = ingredients.map((ingredient) => getIngredient(ingredient));
     return { number, step, ingredients };
 }
 
+
+/**
+ * this function is responsible for extractong all the neccessary data
+ * from the retrieved recipe from the spoonacular API.
+ * @param recipeDataSpooncular - the given recipe that retrieved from the spoonacular API.
+ */
 function extractDataFromRecipe(recipeDataSpooncular) {
   let { id, servings, image, title, readyInMinutes, vegan, glutenFree, vegetarian, aggregateLikes } = recipeDataSpooncular;
   let { extendedIngredients } = recipeDataSpooncular;
@@ -41,6 +68,15 @@ function extractDataFromRecipe(recipeDataSpooncular) {
     //instructions, ingredients, serving, id, image, title, readyInMinutes, vegan, vegetarian, aggregateLikes
 }
 
+
+/**
+ * this asynchronous function checks if a given user by userID already viewed
+ * a given recipe by recipeID from the spoonacular ID recipes and for recipes that uploaded by the users.
+ * @param userID - a given user ID.
+ * @param recipeID - a given recipe ID.
+ * @param spoonacular - an indiciacation if the the given recipe by recipeID in a spoonacular recipe or a recipe that 
+ *                      uploaded by the users. 1 - if it a spooncular recipe. 0 - if it recipe uploaded by the user.
+ */
 async function checkIfIsBeenWatched(userID, recipeID, spoonacular) {
   if(userID == undefined || recipeID == undefined || spoonacular == undefined) {
     throw new Error("bad argument");
@@ -68,6 +104,12 @@ async function checkIfIsBeenWatched(userID, recipeID, spoonacular) {
   }
 }
 
+/**
+ * this asynchronous function checks if a given user by userID is marked as favorite
+ * recipe by a recipeID from the spoonacular API.
+ * @param userID - a given user ID.
+ * @param recipeID - a given recipe ID.
+ */
 async function checkIfIsFavorite(userID, recipeID) {
     let answer = await DButils.execQuery("SELECT * FROM FavoritesSpoonacular WHERE userID='" + userID + "' and recipeID='" + recipeID + "'");
     if(answer.length == 0) {
@@ -78,6 +120,12 @@ async function checkIfIsFavorite(userID, recipeID) {
   }
 }
 
+/**
+ * this asynchronous function is responsible for updating in the DB
+ * the last 3 recipes that the user viewed.
+ * @param userID - a given user ID.
+ * @param recipeID - a given recipe ID.
+ */
 async function updateHistory(userID, recipeID) {
   let userHistory = await DButils.execQuery(`SELECT recipe1_ID, recipe2_ID, recipe3_ID FROM Histories WHERE userID='${userID}'`);
   let { recipe1_ID, recipe2_ID } = userHistory[0];
@@ -94,6 +142,14 @@ async function updateHistory(userID, recipeID) {
   }
 }
 
+/**
+ * this asynchronous function is responsible for adding the recipe from the
+ * spooncaular API or a recipe that added by a certain user to the DB to know which recipes the user watched.
+ * @param {*} userID - a given user ID.
+ * @param {*} recipeID - a given recipe ID.
+ * @param spoonacular - an indiciacation if the the given recipe by recipeID in a spoonacular recipe or a recipe that 
+ *                     uploaded by the users. 1 - if it a spooncular recipe. 0 - if it recipe uploaded by the user.
+ */
 async function addToWatch(userID, recipeID, spoonacular) {
   if(spoonacular == undefined || userID == undefined || recipeID == undefined) {
       next(new Error("user id or recipe id is undefined"))
@@ -107,6 +163,14 @@ async function addToWatch(userID, recipeID, spoonacular) {
   }
 }
 
+
+/**
+ * this asynchronous function is responisle for recieving a recipe from the spoonacular API
+ * and tranfrom the recipe data in it to a values that suitable to our values and also for updating the
+ * the neccesary table if the action commited by a user.
+ * @param spoonacularRandomRecipes - a given recipe from the spoonacular API.
+ * @param id - a given user ID.
+ */
 async function transformSpoonacularRecipeAndUpdateHistory(spoonacularRandomRecipes, id) {
     let recipe_data_spooncular = extractDataFromRecipe(spoonacularRandomRecipes);
     if(id)    // check if the request came from a guest or user.
@@ -119,6 +183,13 @@ async function transformSpoonacularRecipeAndUpdateHistory(spoonacularRandomRecip
     return recipe_data_spooncular;
 }
 
+
+/**
+ * this asynchronous function is responisle for recieving a recipe from the spoonacular API
+ * and tranfrom the recipe data in it to a values that suitable to our values.
+ * @param spoonacularRandomRecipes - a given recipe from the spoonacular API.
+ * @param id - a given user ID.
+ */
 async function transformSpoonacularRecipe(spoonacularRandomRecipes, id) {
   let recipe_data_spooncular = extractDataFromRecipe(spoonacularRandomRecipes);
   if(id)    // check if the request came from a guest or user.
@@ -133,6 +204,12 @@ async function transformSpoonacularRecipe(spoonacularRandomRecipes, id) {
 
 //-------------OUR RECIPES FUNCTIONS --------------------
 
+
+/**
+ * this function tranfrom a binary value to boolean value.
+ * 1 to true. 0 to false.
+ * @param {*} binary 
+ */
 function transformBinaryToBoolean(binary) {
   if(binary == 0) {
     return "false";
@@ -143,6 +220,11 @@ function transformBinaryToBoolean(binary) {
   }
 }
 
+/**
+ * this asynchronous function pulls from the DB a recipe uploaded by
+ * some user by a given recipe ID.
+ * @param recipeID - a given recipe ID.
+ */
 async function getOurRecipeInfo(recipeID)
 {
   let result = await DButils.execQuery("SELECT * FROM Recipes WHERE id='" + recipeID + "'");
@@ -156,6 +238,12 @@ async function getOurRecipeInfo(recipeID)
   return {...recipe,  ingridients:  {...recipeIngridients } };
 }
 
+/**
+ * this asynchronous function pulls from the spoonacular API a recipe
+ * by a given recipe ID by a user or by a guest.
+ * @param userID - a given user ID.
+ * @param recipeID - a given recipe ID.
+ */
 async function getSpooncularRecipeByID(userID, recipeID) {
   if(recipeID == undefined)
   {
@@ -166,12 +254,25 @@ async function getSpooncularRecipeByID(userID, recipeID) {
   return recipe;
 };
 
+/**
+ * this asynchronous function is responisle for recieving a recipe from the spoonacular API
+ * and tranfrom the recipe data in it to a values that suitable to our values and also for updating the
+ * the neccesary table if the action commited by a user.
+ * @param spoonacularRandomRecipes - a given recipe from the spoonacular API.
+ * @param id - a given user ID.
+ */
 async function getSpooncularRecipeByIDAndUpdateHistory(userID, recipeID) {
   let spoonacularRandomRacipe = await getRecipeInfo(recipeID);
   let recipe = await transformSpoonacularRecipeAndUpdateHistory(spoonacularRandomRacipe.data, userID);
   return recipe;
 };
 
+/**
+ * this asynchronous function is responisle for recieving a recipe from the spoonacular API
+ * and tranfrom the recipe data in it to a values that suitable to our values.
+ * @param spoonacularRandomRecipes - a given recipe from the spoonacular API.
+ * @param id - a given user ID.
+ */
 async function transformSpoonacularRecipe(spoonacularRandomRecipes, id) {
   let recipe_data_spooncular = extractDataFromRecipe(spoonacularRandomRecipes);
   if(id)    // check if the request came from a guest or user.
@@ -182,6 +283,14 @@ async function transformSpoonacularRecipe(spoonacularRandomRecipes, id) {
   return recipe_data_spooncular;
 };
 
+/**
+ *  this asynchronous function pulls from the DB a recipe by a given
+ * recipe ID.
+ * if thr action commited by a user the function will check also if the
+ * user already watched by the user.
+ * @param userID - a given user ID.
+ * @param recipeID - a given recipe ID.
+ */
 async function getRecipeByID(userID, recipeID) {
   if(recipeID == undefined) {
     throw new Error("recipe id is undefined.");
@@ -194,18 +303,31 @@ async function getRecipeByID(userID, recipeID) {
   return { ...ourRecipe};
 }
 
-async function test(userID, recipe) {
+/**
+ * this asynchronous function pulls from the DB if the already watched and marked
+ * the recipe as favorites or not.
+ * @param userID - a given user ID.
+ * @param recipe - a given recipe.
+ */
+async function checkIfUserWatchedAndFavorited(userID, recipe) {
   recipe.isBeenWatched = await checkIfIsBeenWatched(userID, recipe.id, 1);
   recipe.isFavorite = await checkIfIsFavorite(userID, recipe.id, 1);
   return recipe;
 }
 
+/**
+ * this asynchronous retrive from the DB an inidication
+ * if a given user by userID already watched ont of the given recipes
+ * and if he narked them is favorite or not.
+ * @param userID - a given user ID.
+ * @param recipesResult - a given recipes. 
+ */
 async function addUserDetails(userID, recipesResult) {
   if(userID == undefined) {
     return recipesResult;
   }
-  let mmm = await Promise.all(recipesResult.map((recipe) => test(userID, recipe)));
-  return mmm;
+  let isWatchedAndFavorited = await Promise.all(recipesResult.map((recipe) => checkIfUserWatchedAndFavorited(userID, recipe)));
+  return isWatchedAndFavorited;
 };
 
 //------------- END OF OUR RECIPES FUNCTIONS --------------------

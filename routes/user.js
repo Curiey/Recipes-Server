@@ -1,9 +1,16 @@
+/**
+ * this class is responsible for handeling all the user logic.
+ * the class handles the register, login and logout actions.
+ */
 var express = require("express");
 var router = express.Router();
 const DButils = require("../DButils");
 const bcrypt = require("bcrypt");
 
-// Register
+/**
+ * handler for http request for registering a new user and
+ * add him to the DB.
+ */
 router.post("/register", async (req, res, next) => {
   if(req.id != undefined) throw { status: 401, message: "user already logged in. please logout first." };
 
@@ -39,7 +46,10 @@ router.post("/register", async (req, res, next) => {
   }
 })
 
-// Login
+/**
+ * handler for http request for loging in a user and
+ * assign him a new session.
+ */
 router.post("/login", async (req, res, next) => {
   try {
       if(req.id != undefined) throw { status: 401, message: "user already logged in. please logout first." };
@@ -72,7 +82,10 @@ router.post("/login", async (req, res, next) => {
     }
 })
 
-// Logout
+/**
+ * handler for http request for loging out a user and
+ * remove his session.
+ */
 router.post("/logout", function (req, res) {
   if(req.id == undefined) {
   req.session.reset(); // reset the session info --> send cookie when  req.session == undefined!!
@@ -81,7 +94,9 @@ router.post("/logout", function (req, res) {
 })
 
 
-// Catch all error and send to client
+/**
+ * default error handler.
+ */
 router.use(function (err, req, res, next) {
   console.error(err);
   res.status(err.status || 500).send({ message: err.message, success: false });

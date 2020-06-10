@@ -1,3 +1,8 @@
+/**
+ * this class is responsible for handeling all the recipes logic.
+ * the class handles the recipes requests from the spoonacular API
+ * and from the DB.
+ */
 var express = require("express");
 var router = express.Router();
 const DButils = require("../DButils");
@@ -7,6 +12,10 @@ const axios = require("axios");
 
 
 // - - - - - - - - - - - - - - http requests - - - - - - - - - - - - - - - 
+/**
+ * handler for http request pulling recipe from the spoonacular API or
+ * from the DB a recipe.
+ */
 router.get("/:id/information", async function (req, res, next) {
   let recipeID = req.params.id;
   if(req.query.spoonacular == 0) {
@@ -25,7 +34,10 @@ router.get("/:id/information", async function (req, res, next) {
   }
 })
 
-//Search
+/**
+ * handler for http request pulling recipes from the spoonacular API
+ * by a guven search query that given by the user/guest.
+ */
 router.get("/search/query/:searchQuery/amount/:num", (req, res) => {
   let { searchQuery, num } = req.params;
   //set search params
@@ -47,7 +59,9 @@ router.get("/search/query/:searchQuery/amount/:num", (req, res) => {
 });
 
 
-// Catch all error and send to client
+/**
+ * default error handler.
+ */
 router.use(function (err, req, res, next) {
   console.error(err);
   res.status(err.status || 500).send({ message: err.message, success: false });
