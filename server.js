@@ -1,10 +1,3 @@
-/**
- * this class is the main class of the server side.
- * the class incharge of recieving all the http requests and route them to
- * the neccessary class if needed.
- */
-
-
 // import
 var express = require('express');
 var path = require("path");
@@ -41,11 +34,7 @@ const profile = require("./routes/profile");
 const recipe = require("./routes/recipe");
 const user = require("./routes/user");
 
-/**
- * middleware.
- * this middleware checks if all the http request is done by a user or by a guest.
- * if the request is done by user, the middleware will extract the userID add/refresh his session.
- */
+//#region global simple
 app.use(async (req, res, next) => {
   console.log("new user connection");
   if(req.session && req.session.id != undefined) {
@@ -66,7 +55,6 @@ app.use("/user", user);
 
 // - - - - - - - - - - - - - - functions - - - - - - - - - - - - - - - 
 
-// @ @ @ @ @ @ @ @ @  DLETE LATER @ @ @ @ @ @ @ @ @ @ @ @ @ @ @ 
 function writeJSONToDisc(data)
 {
   fs.writeFile ("input2.json", JSON.stringify(data), function(err) {
@@ -76,17 +64,13 @@ function writeJSONToDisc(data)
 );
 }
 
-// @ @ @ @ @ @ @ @ @  DLETE LATER @ @ @ @ @ @ @ @ @ @ @ @ @ @ @ 
 function readJSONFromDisc()
 {
   var obj = JSON.parse(fs.readFileSync('input2.json', 'utf8'));
   return obj;
 }
 
-/**
- * this asynchronous function gets from spoonacular api
- * 3 random recipes.
- */
+
 async function getRandomRecipes() {
   return await axios.get(`${process.env.api_domain}/random`, {
     params: {
@@ -96,12 +80,6 @@ async function getRandomRecipes() {
   })
 }
 
-/**
- * the functions receive 3 recipes that have been retrieved from
- * spoonacular API and check to each one of them if they conatins instructions.
- * if all of them conatin instructions - return true. else - return false.
- * @param recipes - the 3 recipes. 
- */
 function checkIfThereIsInstractions(recipes) {
   for (let index = 0; index < recipes.length; index++) {
     const { analyzedInstructions } = recipes[index];
@@ -113,14 +91,12 @@ function checkIfThereIsInstractions(recipes) {
   return true;
 }
 
+function getInstruction(instruction) {
+  let { number, step, ingredients } = instruction;
+  ingredients = ingredients.map((ingredient) => getIngredient(ingredient));
+  return { number, step, ingredients };
+}
 
-/**
- * this asynchronous function recieve 3 recipes from sponnacular API
- * and transform each one the recipes to an object containing the field names
- * of to our api.
- * @param spoonacularRandomRecipes - the 3 recipes retrieved from the API.
- * @param  userID - the given user ID.
- */
 async function transformSpoonacularRecipes(spoonacularRandomRecipes, userID) {
   let result =  await spoonacularRandomRecipes.map((currentSpoonacularRacipe) => Utils.transformSpoonacularRecipe(currentSpoonacularRacipe, userID));
   return Promise.all(result).then(function(result) {
@@ -133,10 +109,6 @@ async function transformSpoonacularRecipes(spoonacularRandomRecipes, userID) {
   // let instructions = analyzedInstructions[0].steps.map((step) => getInstruction(step));
 }
 
-/**
- * this asynchronous function retrieve the last 3 recipeד the current user viwed.
- * @param userID - the user ID.
- */
 async function getHistory(userID)
 {
   let recipesIDs = await DButils.execQuery("SELECT recipe1_ID, recipe2_ID, recipe3_ID FROM Histories WHERE userID='" + userID + "'");
@@ -162,13 +134,9 @@ async function getHistory(userID)
   .catch(new Error("couldnt retrieve all recipes"));
 }
 
-// - - - - - - - - - - - - - -END OF FUNCTIONS - - - - - - - - - - - - - - - 
+// - - - - - - - - - - - - - -end of functions - - - - - - - - - - - - - - - 
 
-
-/**
- * http request for getting 3 new random recipes to show in
- * home page of the website.
- */
+// (EXPLORE)Get random recipes
 app.get("/getRandomRecipes/explore"), async function(req, res) {
   let spoonacularRandomRecipes = await getRandomRecipes();
 
@@ -181,11 +149,7 @@ app.get("/getRandomRecipes/explore"), async function(req, res) {
   res.status(200).send(respond);
 }
 
-/**
- * http request of the home page of the webiste.
- * the function will request 3 random recipes from 'spoonacular' API.
- * if the request is done a by a user, the function will retrieve the last 3 recipes the user viwed.
- */
+// Welcome
 app.get("/", async function (req, res, next) {
 
   //TODO: return it later ! ! !
@@ -217,17 +181,13 @@ app.get("/", async function (req, res, next) {
 });
 
 
-/**
- * default error handler.
- */
+// Catch all error and send to client
 app.use(function (err, req, res, next) {
   console.error(err);
   res.status(err.status || 500).send({ message: err.message, success: false });
 });
 
-/**
- * listener.
- */
+// Start listening
 const port = process.env.PORT || 3000; //environment variable
 app.listen(port, () => {
 	console.log(`Listening on port ${port}`);
