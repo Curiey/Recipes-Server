@@ -12,7 +12,7 @@ function extractQueriesParams(query_params, search_params) {
 
 function extractRelvantRecipeData(recipes_info) {
   return recipes_info.map((recipes_info) => {
-    const {id, title, readyInMinutes, aggregateLikes, vegetarian, vegan, glutenFree, image } = recipes_info.data;
+    const { id, title, readyInMinutes, aggregateLikes, vegetarian, vegan, glutenFree, image } = recipes_info.data;
     return {
       id: id,
       title: title,
