@@ -224,9 +224,9 @@ async function transformSpoonacularRecipe(spoonacularRandomRecipes, id) {
  */
 function transformBinaryToBoolean(binary) {
   if (binary == 0) {
-    return "false";
+    return false;
   } else if (binary == 1) {
-    return "true";
+    return true;
   } else {
     new Error("not valid binary argument (not 0 or 1)");
   }
@@ -246,7 +246,7 @@ async function getOurRecipeInfo(recipeID) {
   recipe.vegetarian = transformBinaryToBoolean(recipe.vegetarian);
   recipe.glutenFree = transformBinaryToBoolean(recipe.glutenFree);
 
-  return { ...recipe, ingridients: { ...recipeIngridients } };
+  return { ...recipe, ingredients: [...recipeIngridients] };
 }
 
 /**

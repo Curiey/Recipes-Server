@@ -14,16 +14,16 @@ const Utils = require("../Utils");
  * made by a registered user.
  */
 router.use((req, res, next) => {
-    if(req.id != undefined) next();
-    else throw { status: 401, message: "unauthorized" };
+  if (req.id != undefined) next();
+  else throw { status: 401, message: "unauthorized" };
 })
 
 /**
  * handler for http request pulling the favorite recipes of a user
  */
 router.get("/viewFavorites", async function (req, res, next) {
-  if(!req.id) {
-      next(new Error("not autorize user."));
+  if (!req.id) {
+    next(new Error("not autorize user."));
   }
   let recipes = {
     "recipeList": []
@@ -32,21 +32,21 @@ router.get("/viewFavorites", async function (req, res, next) {
   let favoritesIDsSpooncular = await DButils.execQuery("SELECT recipeID FROM FavoritesSpoonacular WHERE userID='" + req.id + "'");
   let favoritsRecipesSpooncular = favoritesIDsSpooncular.map((recipeID) => Utils.getSpooncularRecipeByID(req.id, recipeID.recipeID));
   await Promise.all(favoritsRecipesSpooncular)
-  .then((result) => {
-    result.forEach((recipe) => recipes.recipeList.push(recipe));
-  })
-  .catch((error) => res.send({ status: 401, message: error.message }));
+    .then((result) => {
+      result.forEach((recipe) => recipes.recipeList.push(recipe));
+    })
+    .catch((error) => res.send({ status: 401, message: error.message }));
   res.status(200).send(recipes);
 });
-  
+
 
 /**
  * handler for http request pulling the recipes that
  * uploaded by the user.
  */
 router.get("/viewMyRecipes", async function (req, res) {
-  if(!req.id) {
-      next(new Error("not autorize user."));
+  if (!req.id) {
+    next(new Error("not autorize user."));
   }
   let recipes = {
     "recipeList": []
@@ -56,10 +56,10 @@ router.get("/viewMyRecipes", async function (req, res) {
   let userRecpies = userRecpiesIds.map((recipuserRecpiesIdseID) => Utils.getRecipeByID(req.id, recipuserRecpiesIdseID.id));
 
   await Promise.all(userRecpies)
-  .then((result) => {
-    result.forEach((recipe) => recipes.recipeList.push(recipe));
-  })
-  .catch((error) => res.send({ status: 401, message: error.message }));
+    .then((result) => {
+      result.forEach((recipe) => recipes.recipeList.push(recipe));
+    })
+    .catch((error) => res.send({ status: 401, message: error.message }));
 
   res.status(200).send(recipes);
 });
@@ -71,9 +71,9 @@ router.get("/viewMyRecipes", async function (req, res) {
  * @param boolean - a given boolean value.
  */
 function transformBooleanToBinary(boolean) {
-  if(boolean == "true") {
+  if (boolean == true) {
     return 1;
-  } else if(boolean == "false") {
+  } else if (boolean == false) {
     return 0;
   } else {
     new Error("not valid boolean argument (not 0 or 1)");
@@ -86,9 +86,9 @@ function transformBooleanToBinary(boolean) {
  * @param indregiantName - a given ingredient name.
  */
 async function getIngredientByName(indregiantName) {
-  let result =  await DButils.execQuery(`SELECT id FROM Ingredients WHERE  name='${indregiantName}'`)
-  if(result.length > 0) {
-    return result[0];
+  let result = await DButils.execQuery(`SELECT id FROM Ingredients WHERE  name='${indregiantName}'`)
+  if (result.length > 0) {
+    return result[0].id;
   }
   return undefined;
 }
@@ -98,10 +98,21 @@ async function getIngredientByName(indregiantName) {
  * @param indregiantName - a given Ingredient name.
  */
 async function createNewIngredient(indregiantName) {
-  if(indregiantName == undefined) new Error("cannot insert ingredient without name.");
-  await DButils.execQuery(`INSERT INTO Ingredients(name) VALUES ('${indregiantName}') SELECT SCOPE_IDENTITY()`)
-  .then((ingredientID) => {return ingredientID})
-  .catch((error) => next(error));
+  if (indregiantName == undefined) new Error("cannot insert ingredient without name.");
+  let ingredientID = await DButils.execQuery(`INSERT INTO Ingredients(name) VALUES ('${indregiantName}') SELECT SCOPE_IDENTITY()`)
+  if (ingredientID != undefined) {
+    console.log(ingredientID);
+    let { id } = ingredientID[0];
+    return id;
+  }
+  else {
+    throw Error("failed at createNewIngredient.");
+  }
+  // .then((ingredientID) => {
+  //   console.log(ingredientID);
+  //   return ingredientID[0];
+  // })
+  // .catch((error) => next(error));
 }
 
 /**
@@ -110,14 +121,14 @@ async function createNewIngredient(indregiantName) {
  */
 async function addIngredientToRecipe(recipeID, ingredient) {
   let ingredientID = await getIngredientByName(ingredient.name);
-  if(ingredientID == undefined) {
+  if (ingredientID == undefined) {
     ingredientID = await createNewIngredient(ingredient.name)
-    .catch((error) => console.log("could not create new indregiant"));
+      .catch((error) => console.log("could not create new indregiant"));
   }
   let { amount, unit } = ingredient;
   await DButils.execQuery(`INSERT INTO RecipeIngredients(recipeID, ingredientID, amount, unit) VALUES ('${recipeID}', '${ingredientID}', '${amount}', '${unit}') SELECT SCOPE_IDENTITY() AS id`)
-  .then((recipeID) => addIngredients(recipeID, ingredients))
-  .catch((error) => next(error));
+    // .then((recipeID) => addIngredients(recipeID, ingredients))
+    .catch((error) => next(error));
 }
 
 /**
@@ -127,7 +138,7 @@ async function addIngredientToRecipe(recipeID, ingredient) {
  * @param ingredients - a given list of ingredients.
  */
 function addIngredients(recipe, ingredients) {
-  if(recipe == undefined) new Error("got bad argument. recipeID cannot be found.")
+  if (recipe == undefined) new Error("got bad argument. recipeID cannot be found.")
   let { id } = recipe[0];
   ingredients.map((ingredient) => addIngredientToRecipe(id, ingredient));
 }
@@ -138,22 +149,23 @@ function addIngredients(recipe, ingredients) {
  * a registered user.
  */
 router.post("/createRecipe", async function (req, res, next) {
-  let {title, readyInMinutes, vegan, vegetarian, glutenFree, instructions, ingredients, serving, image } = req.body;
-  if(title == undefined || readyInMinutes == undefined || vegan == undefined || vegetarian == undefined || glutenFree == undefined || instructions == undefined || serving == undefined || image == undefined || ingredients == undefined ) throw { status: 400, message: "one of the argument is not specified." };
-  
+  let { title, readyInMinutes, vegan, vegetarian, glutenFree, instructions, ingredients, serving, image } = req.body;
+  if (title == undefined || readyInMinutes == undefined || vegan == undefined || vegetarian == undefined || glutenFree == undefined || instructions == undefined || serving == undefined || image == undefined || ingredients == undefined) throw { status: 400, message: "one of the argument is not specified." };
+
   // vegan - transform binary to boolean
   vegan = transformBooleanToBinary(vegan);
   vegetarian = transformBooleanToBinary(vegetarian);
   glutenFree = transformBooleanToBinary(glutenFree);
 
   try {
-      await DButils.execQuery(`INSERT INTO Recipes(userID, title, readyInMinutes, aggregateLikes, vegan, vegetarian, glutenFree, instructions, serving, image) VALUES ('${req.id}', '${title}', '${readyInMinutes}', '0', '${vegan}', '${vegetarian}', '${glutenFree}', '${instructions}', '${serving}', '${image}') SELECT SCOPE_IDENTITY() AS id`)
+    await DButils.execQuery(`INSERT INTO Recipes(userID, title, readyInMinutes, aggregateLikes, vegan, vegetarian, glutenFree, instructions, serving, image) VALUES ('${req.id}', '${title}', '${readyInMinutes}', '0', '${vegan}', '${vegetarian}', '${glutenFree}', '${instructions}', '${serving}', '${image}') SELECT SCOPE_IDENTITY() AS id`)
       .then((recipeID) => addIngredients(recipeID, ingredients))
       .catch((error) => next(error));
-      res.status(200).send({ message: "recipe created", sucess: true });
-    } catch (error) {
-      next(error);
-    }
+    console.log("recipe done");
+    res.status(200).send({ message: "recipe created", sucess: true });
+  } catch (error) {
+    next(error);
+  }
 });
 
 
@@ -163,10 +175,10 @@ router.post("/createRecipe", async function (req, res, next) {
  */
 router.post("/addToFavorites", async function (req, res) {
   let { recipeID } = req.body;
-  if( recipeID == undefined || req.id == undefined ) throw { status: 400, message: "one of the argument is not specified." };
+  if (recipeID == undefined || req.id == undefined) throw { status: 400, message: "one of the argument is not specified." };
   await DButils.execQuery(`INSERT INTO FavoritesSpoonacular VALUES ('${req.id}', '${recipeID}')`)
-  .then((result) => res.status(201).send({ message: "recipe added seccessfuly", sucess: true }))
-  .catch((error) => {throw {  status: 409, message: "recipe already marked as favorite by the user"}});
+    .then((result) => res.status(201).send({ message: "recipe added seccessfuly", sucess: true }))
+    .catch((error) => { throw { status: 409, message: "recipe already marked as favorite by the user" } });
 });
 
 

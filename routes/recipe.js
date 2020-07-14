@@ -18,19 +18,19 @@ const axios = require("axios");
  */
 router.get("/:id/information", async function (req, res, next) {
   let recipeID = req.params.id;
-  if(req.query.spoonacular == 0) {
+  if (req.query.spoonacular == 0) {
     let recipe = await Utils.getRecipeByID(req.id, recipeID);
-    if(req.id) {
+    if (req.id) {
       await Utils.addToWatch(req.id, recipeID, 0)
-      .catch((error) => console.log("user already watch this recipe, cannot add another record."));
+        .catch((error) => console.log("user already watch this recipe, cannot add another record."));
     }
     res.status(200).send({ ...recipe });
-  } else if(req.query.spoonacular == 1) {
+  } else if (req.query.spoonacular == 1) {
     let recipe = await Utils.getSpooncularRecipeByIDAndUpdateHistory(req.id, recipeID)
-    .catch((error) => next(error));
+      .catch((error) => next(error));
     res.status(200).send({ ...recipe });
   } else {
-    next(new Error("bad spoonacular value")); 
+    next(new Error("bad spoonacular value"));
   }
 })
 
@@ -52,9 +52,9 @@ router.get("/search/query/:searchQuery/amount/:num", (req, res) => {
   searchUtils
     .searchForRecipes(search_params)
     .then((recipesResults) => Utils.addUserDetails(req.id, recipesResults))
-    .then((info_array) => res.send(info_array))
+    .then((info_array) => res.status(200).send(info_array))
     .catch((error) => {
-      res.sendStatus(500);
+      res.status(500).send(error);
     });
 });
 
@@ -66,6 +66,6 @@ router.use(function (err, req, res, next) {
   console.error(err);
   res.status(err.status || 500).send({ message: err.message, success: false });
 });
-  
+
 
 module.exports = router;
