@@ -1,0 +1,108 @@
+-----------------------------Users-----------------------------
+CREATE TABLE Users(
+					id INT IDENTITY PRIMARY KEY NOT NULL,
+					username NVARCHAR(20) UNIQUE NOT NULL,
+					firstName NVARCHAR(10) NOT NULL,
+					lastName NVARCHAR(16) NOT NULL,
+					country NVARCHAR(20) NOT NULL,
+					password NVARCHAR(max) NOT NULL,
+					email NVARCHAR(30) NOT NULL,
+					image NVARCHAR(max) NOT NULL
+)
+	
+-----------------------------Recipes-----------------------------
+CREATE TABLE Recipes(
+                    id INT IDENTITY PRIMARY KEY NOT NULL,
+                    userID INT NOT NULL,
+                    title NVARCHAR(30) NOT NULL,
+                    readyInMinutes INT NOT NULL,
+                    aggregateLikes INT DEFAULT 0 NOT NULL,
+                    vegan INT NOT NULL,
+                    vegetarian INT NOT NULL,
+                    glutenFree INT NOT NULL,
+                    instructions NVARCHAR(max) NOT NULL,
+                    serving INT NOT NULL,
+                    image NVARCHAR(max) NOT NULL,
+                    FOREIGN KEY (userID) REFERENCES Users(id) 
+)
+
+-----------------------------FavoritesSpoonacular-----------------------------
+CREATE TABLE FavoritesSpoonacular(
+                    userID INT NOT NULL,
+                    recipeID INT NOT NULL,
+	                PRIMARY KEY("userID","recipeID"),
+                    FOREIGN KEY (userID) REFERENCES Users(id)
+)
+-----------------------------Watched-----------------------------
+CREATE TABLE Watched(
+                    userID INT NOT NULL,
+                    recipeID INT NOT NULL,
+	                PRIMARY KEY("userID","recipeID"),
+                    FOREIGN KEY (userID) REFERENCES Users(id),
+                    FOREIGN KEY (recipeID) REFERENCES Recipes(id) 
+)
+
+-----------------------------WatchedSpoonacular-----------------------------
+CREATE TABLE WatchedSpoonacular(
+                    userID INT NOT NULL,
+                    recipeID INT NOT NULL,
+	                PRIMARY KEY("userID","recipeID"),
+                    FOREIGN KEY (userID) REFERENCES Users(id)
+)
+-----------------------------Ingredients-----------------------------
+CREATE TABLE Ingredients(
+                    id INT IDENTITY NOT NULL,
+                    name NVARCHAR(30) NOT NULL,
+	                PRIMARY KEY("id")
+)
+
+-----------------------------recipe-Ingredients-----------------------------
+CREATE TABLE recipeIngredients(
+                    recipeID INT NOT NULL,
+                    ingredientID INT NOT NULL,
+                    amount INT NOT NULL,
+                    unitLong NVARCHAR(10) NOT NULL,
+	                PRIMARY KEY("recipeID","ingredientID"),
+                    FOREIGN KEY (recipeID) REFERENCES Recipes(id),
+                    FOREIGN KEY (ingredientID) REFERENCES Ingredients(id) 
+)
+
+	
+-----------------------------OurFamilyRecipes-----------------------------
+CREATE TABLE OurFamilyRecipes(
+                    id INT IDENTITY PRIMARY KEY NOT NULL,
+                    userID INT NOT NULL,
+                    title NVARCHAR(30) NOT NULL,
+                    readyInMinutes INT NOT NULL,
+                    aggregateLikes INT DEFAULT 0 NOT NULL,
+                    vegan INT NOT NULL,
+                    vegetarian INT NOT NULL,
+                    instructions NVARCHAR(max) NOT NULL,
+                    serving INT NOT NULL,
+                    image NVARCHAR(max) NOT NULL,
+                    FOREIGN KEY (userID) REFERENCES Users(id) 
+)
+
+-----------------------------Histories-----------------------------
+CREATE TABLE Histories (
+userID INT NOT NULL PRIMARY KEY,
+recipe1_ID INT default -1,
+recipe2_ID INT default -1,
+recipe3_ID INT default -1,
+FOREIGN KEY (userID) REFERENCES Users(id))
+
+
+
+
+
+
+-----------------------------DROP TABLES-----------------------------
+DROP TABLE Histories
+DROP TABLE FavoritesSpoonacular
+DROP TABLE WatchedSpoonacular
+DROP TABLE Watched
+DROP TABLE recipeIngredients
+DROP TABLE Ingredients
+DROP TABLE Recipes
+DROP TABLE OurFamilyRecipes
+DROP TABLE Users

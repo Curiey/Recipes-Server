@@ -1,0 +1,89 @@
+-----------------------------Users-----------------------------
+CREATE TABLE Users(
+					id INT IDENTITY PRIMARY KEY NOT NULL,
+					username NVARCHAR(20) UNIQUE NOT NULL,
+					firstName NVARCHAR(10) NOT NULL,
+					lastName NVARCHAR(16) NOT NULL,
+					country NVARCHAR(20) NOT NULL,
+					password NVARCHAR(256) NOT NULL,
+					email NVARCHAR(30) NOT NULL,
+					image NVARCHAR(256) NOT NULL
+)
+	
+-----------------------------Recipes-----------------------------
+CREATE TABLE Recipes(
+                    id INT IDENTITY PRIMARY KEY NOT NULL,
+                    userID INT NOT NULL,
+                    title NVARCHAR(256) NOT NULL,
+                    readyInMinutes NVARCHAR(256) NOT NULL,
+                    aggregateLikes INT DEFAULT 0 NOT NULL,
+                    vegan INT NOT NULL,
+                    vegetarian INT NOT NULL,
+                    instructions NVARCHAR NOT NULL,
+                    serving INT NOT NULL,
+                    image NVARCHAR NOT NULL,
+                    FOREIGN KEY (userID) REFERENCES Users(id) 
+)
+
+-----------------------------Favorites-----------------------------
+CREATE TABLE Favorites(
+                    userID INT NOT NULL,
+                    recipeID INT NOT NULL,
+	                PRIMARY KEY("userID","recipeID"),
+                    FOREIGN KEY (userID) REFERENCES Users(id),
+                    FOREIGN KEY (recipeID) REFERENCES Recipes(id) 
+)
+
+-----------------------------Watched-----------------------------
+CREATE TABLE Watched(
+                    userID INT NOT NULL,
+                    recipeID INT NOT NULL,
+	                PRIMARY KEY("userID","recipeID"),
+                    FOREIGN KEY (userID) REFERENCES Users(id),
+                    FOREIGN KEY (recipeID) REFERENCES Recipes(id) 
+)
+
+-----------------------------Ingredients-----------------------------
+CREATE TABLE Ingredients(
+                    id INT IDENTITY NOT NULL,
+                    name NVARCHAR NOT NULL,
+	                PRIMARY KEY("id")
+)
+
+-----------------------------recipe-Ingredients-----------------------------
+CREATE TABLE recipeIngredients(
+                    recipeID INT NOT NULL,
+                    ingredientID INT NOT NULL,
+                    amount INT NOT NULL,
+                    unitLong NVARCHAR NOT NULL,
+	                PRIMARY KEY("recipeID","ingredientID"),
+                    FOREIGN KEY (recipeID) REFERENCES Recipes(id),
+                    FOREIGN KEY (ingredientID) REFERENCES Ingredients(id) 
+)
+
+	
+-----------------------------PersonalRecipes-----------------------------
+CREATE TABLE PersonalRecipes(
+                    id INT IDENTITY PRIMARY KEY NOT NULL,
+                    userID INT NOT NULL,
+                    title NVARCHAR(256) NOT NULL,
+                    readyInMinutes NVARCHAR(256) NOT NULL,
+                    aggregateLikes INT DEFAULT 0 NOT NULL,
+                    vegan INT NOT NULL,
+                    vegetarian INT NOT NULL,
+                    instructions NVARCHAR NOT NULL,
+                    serving INT NOT NULL,
+                    image NVARCHAR NOT NULL,
+                    FOREIGN KEY (userID) REFERENCES Users(id) 
+)
+
+
+
+
+DROP TABLE Favorites
+DROP TABLE Watched
+DROP TABLE recipeIngredients
+DROP TABLE Ingredients
+DROP TABLE Recipes
+DROP TABLE PersonalRecipes
+DROP TABLE Users

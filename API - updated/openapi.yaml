@@ -1,0 +1,660 @@
+openapi: 3.0.0
+info:
+  title: WDE - Assignment 3.1 -  updated
+  description: Recipes website API
+  contact:
+    name: yarden curiel & aviv amsellem.
+    email: curiey@post.bgu.ac.il
+  version: 1.1.1
+servers:
+- url: http://localhost:3000/
+tags:
+- name: site
+  description: Home Page and base site functionality.
+- name: user
+  description: All relevant User functionality (register, login, logout).
+- name: profile
+  description: All relevant User functionality involving user and recipes.
+- name: recipe
+  description: All recipes general info.
+paths:
+  /:
+    get:
+      tags:
+      - site
+      summary: home page with recipes.
+      description: home page. receive 2 arrays. one is 3 random recipes and second
+        is 3 last viewed recipes. for guest the second array will be empty.
+      responses:
+        "200":
+          description: OK. recipes on the way
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200'
+        "204":
+          description: Bad, No Content was found.
+        "400":
+          description: Bad Request.
+      security:
+      - cookieAuth: []
+  /getRandomRecipes/explore:
+    get:
+      tags:
+      - site
+      summary: home page with recipes.
+      description: home page. receive 2 arrays. one is 3 random recipes and second
+        is 3 last viewed recipes. for guest the second array will be empty.
+      responses:
+        "200":
+          description: OK. recipes on the way
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200_1'
+        "204":
+          description: Bad, No Content was found.
+        "400":
+          description: Bad Request.
+  /login:
+    post:
+      tags:
+      - user
+      summary: login method.
+      description: Login and set session id.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/body'
+        required: true
+      responses:
+        "200":
+          description: Login Successfully. The session ID is returned in a cookie
+            named `JSESSIONID`. You need to include this cookie in subsequent requests.
+          headers:
+            Set-Cookie:
+              style: simple
+              explode: false
+              schema:
+                type: string
+                example: JSESSIONID=abcde12345
+        "401":
+          description: Autorization failed, Username or Password incorrect.
+  /register:
+    post:
+      tags:
+      - user
+      summary: Registration method.
+      description: Registration page for a new user.
+      requestBody:
+        description: Registration page for a new user.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/body_1'
+        required: true
+      responses:
+        "200":
+          description: OK. registration complete successfully
+        "400":
+          description: Bad Request. Not all reqired argument was given.
+        "401":
+          description: User already logged in.
+        "409":
+          description: Username is already taken.
+  /logout:
+    get:
+      tags:
+      - user
+      summary: User log out from website.
+      description: User Request to logout from the website.
+      responses:
+        "200":
+          description: logout succeeded.
+        "401":
+          description: must logged in before logging out.
+      security:
+      - cookieAuth: []
+  /viewOurFamilyRecipes:
+    get:
+      tags:
+      - site
+      summary: Get developers recipes.
+      description: Get all the web developers family recipes.
+      responses:
+        "200":
+          description: OK. recipes on the way
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PreviewRecipe'
+        "204":
+          description: Bad, No Content was found.
+        "400":
+          description: Bad Request.
+  /createRecipe:
+    post:
+      tags:
+      - profile
+      summary: Upload a new recipe.
+      description: user upload a new content to the webiste.
+      requestBody:
+        description: New recipe that the user want to upload.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BaseRecipe'
+        required: true
+      responses:
+        "200":
+          description: OK. recipe upload successfuly.
+        "400":
+          description: Bad Request. one of the argument is not specified.
+      security:
+      - cookieAuth: []
+  /addToFavorites:
+    post:
+      tags:
+      - profile
+      description: mark recipe as a user's favorite.
+      requestBody:
+        description: New recipe that the user want to upload.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/body_2'
+        required: true
+      responses:
+        "201":
+          description: recipe added seccessfuly.
+        "400":
+          description: one of the argument is not specified.
+        "409":
+          description: recipe already marked as favorite by the user.
+      security:
+      - cookieAuth: []
+  /viewFavoritesRecipes:
+    get:
+      tags:
+      - profile
+      summary: Get all favorites recipes.
+      description: Get all favorites recipes that the user added to his favorites
+        since registered.
+      responses:
+        "200":
+          description: OK. recipes on the way.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PreviewRecipe'
+        "204":
+          description: Bad, No Content was found.
+        "400":
+          description: Bad Request.
+      security:
+      - cookieAuth: []
+  /viewMyRecipes:
+    get:
+      tags:
+      - profile
+      summary: Get all reciped that the user created.
+      description: Get all recipes that the user created since registered.
+      responses:
+        "200":
+          description: OK. recipes on the way.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PreviewRecipe'
+        "204":
+          description: Bad, No Content was found.
+        "400":
+          description: Bad Request.
+      security:
+      - cookieAuth: []
+  /recipe/{recipeId}/information:
+    get:
+      tags:
+      - recipe
+      description: User ask for specific recipe that will be return to the user.
+      parameters:
+      - name: recipeId
+        in: path
+        description: Identification of the requested recipeby id.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: number
+          example: 234
+      responses:
+        "200":
+          description: OK. recipes on the way.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+        "204":
+          description: Bad, No Content was found.
+        "400":
+          description: Bad Request.
+      security:
+      - cookieAuth: []
+  /search/search/query/{searchQuery}/amount/{num}:
+    get:
+      tags:
+      - recipe
+      description: User send recipe query. filter(Cusine, diet, intolerance) and number
+        (5/10/15) of result can be injected as well.
+      parameters:
+      - name: searchQuery
+        in: path
+        description: the search query for searching a query in the API.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      - name: num
+        in: path
+        description: Number of search results to retieve.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      - name: cusine
+        in: query
+        required: false
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Cusine'
+      - name: diet
+        in: query
+        required: false
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Diet'
+      - name: intolerances
+        in: query
+        required: false
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Intolerances'
+      responses:
+        "200":
+          description: OK. recipes on the way.
+          content:
+            application/json:
+              schema:
+                maxItems: 15
+                minItems: 5
+                type: array
+                items:
+                  $ref: '#/components/schemas/PreviewRecipe'
+        "204":
+          description: Bad, No Content was found.
+        "400":
+          description: Bad Request.
+components:
+  schemas:
+    Instruction:
+      type: object
+      properties:
+        stepNumber:
+          type: integer
+          example: 1
+        stepDescription:
+          type: string
+          example: Insert the gahnun to the oven, and you done :).
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/extendedIngredient'
+      description: Respresent step in recipe, contain step number and step descripton.
+    Ingredient:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: curry.
+      description: Represnt Ingredient.
+    extendedIngredient:
+      type: object
+      properties:
+        ingredient:
+          $ref: '#/components/schemas/Ingredient'
+        amount:
+          type: number
+          example: 0.5
+        Unit measure:
+          type: string
+          example: grams.
+      description: Represnt Ingredient and amount.
+    BasePreviewPecipe:
+      required:
+      - aggregateLikes
+      - glutenFree
+      - image
+      - instructions
+      - isBeenWatched
+      - isFavorite
+      - readyInMinutes
+      - title
+      - vegan
+      - vegetarian
+      properties:
+        title:
+          type: string
+          example: gahnun
+        readyInMinutes:
+          type: integer
+          example: 7
+        aggregateLikes:
+          type: integer
+          example: 453
+        vegan:
+          type: boolean
+          example: true
+        vegetarian:
+          type: boolean
+          example: true
+        glutenFree:
+          type: boolean
+          example: true
+        isBeenWatched:
+          type: boolean
+          example: true
+        isFavorite:
+          type: boolean
+          example: true
+        image:
+          type: string
+          example: gahnun.jpg
+      description: Base preview of recipe. containing some of the recipe information
+        without id field  (use for upload a new recipe).
+    PreviewRecipe:
+      description: Preview of recipe. conatining some or recipe information with id
+        field.
+      allOf:
+      - $ref: '#/components/schemas/BasePreviewPecipe'
+      - required:
+        - id
+        type: object
+        properties:
+          id:
+            type: integer
+            example: 453
+    BaseRecipe:
+      description: Recipe object with Ingredients and amounts, how to make the recipe
+        and number of dish this recipe provides (use for upload a new recipe).
+      allOf:
+      - $ref: '#/components/schemas/BasePreviewPecipe'
+      - type: object
+        properties:
+          Ingredients:
+            type: array
+            items:
+              $ref: '#/components/schemas/extendedIngredient'
+          Instructions:
+            type: array
+            items:
+              $ref: '#/components/schemas/Instruction'
+          serving:
+            type: integer
+            example: 5
+    Recipe:
+      description: Recipe object with Ingredients and amounts, how to make the recipe
+        and number of dish this recipe provides.
+      allOf:
+      - $ref: '#/components/schemas/PreviewRecipe'
+      - required:
+        - ingredients
+        - instructions
+        - serving
+        type: object
+        properties:
+          ingredients:
+            type: array
+            items:
+              $ref: '#/components/schemas/extendedIngredient'
+          instructions:
+            type: string
+            example: insert the gahnun to the oven.
+          serving:
+            type: integer
+            example: 5
+    Cusine:
+      type: string
+      enum:
+      - African
+      - American
+      - British
+      - Cajun
+      - Caribbean
+      - Chinese
+      - Eastern European
+      - European
+      - French
+      - German
+      - Greek
+      - Indian
+      - Irish
+      - Italian
+      - Japanese
+      - Jewish
+      - Korean
+      - Latin American
+      - Mediterranean
+      - Mexican
+      - Middle Eastern
+      - Nordic
+      - Southern
+      - Spanish
+      - Thai
+      - Vietnamese
+    Diet:
+      type: string
+      enum:
+      - Gluten Free
+      - Ketogenic
+      - Vegetarian
+      - Lacto-Vegetarian
+      - Ovo-Vegetarian
+      - Vegan
+      - Pescetarian
+      - Paleo
+      - Primal
+      - Whole30
+    Intolerances:
+      type: string
+      enum:
+      - Dairy
+      - Egg
+      - Gluten
+      - Grain
+      - Peanut
+      - Seafood
+      - Sesame
+      - Shellfish
+      - Soy
+      - Sulfite
+      - Tree Nut
+      - Wheat
+    inline_response_200:
+      type: object
+      properties:
+        randomRecipes:
+          maxItems: 3
+          minItems: 3
+          type: array
+          items:
+            $ref: '#/components/schemas/PreviewRecipe'
+        lastRecipesViewed:
+          maxItems: 3
+          minItems: 0
+          type: array
+          items:
+            $ref: '#/components/schemas/PreviewRecipe'
+    inline_response_200_1:
+      type: object
+      properties:
+        RandomRecipes:
+          maxItems: 3
+          minItems: 3
+          type: array
+          items:
+            $ref: '#/components/schemas/PreviewRecipe'
+    body:
+      type: object
+      properties:
+        username:
+          maxLength: 8
+          minLength: 3
+          type: string
+          description: Containing letter only.
+        password:
+          maxLength: 10
+          minLength: 5
+          type: string
+          description: Containing at least one letter and at least one numbers.
+      example:
+        username: admin
+        password: a123456
+    body_1:
+      type: object
+      properties:
+        username:
+          type: string
+          example: Johnsmith1
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Smith
+        country:
+          type: string
+          example: Israel
+        password:
+          type: string
+          example: password
+        email:
+          type: string
+          example: johnsmith@gmail.com
+        image:
+          type: string
+          example: https://cloudinary.com/image.jpg
+    body_2:
+      type: object
+      properties:
+        recipeID:
+          type: integer
+          example: 1
+        spoonacular:
+          type: boolean
+          example: true
+  examples:
+    TimeExample:
+      summary: Time representation example.
+      value:
+        timeAmount: 8
+        timeUnit: Hours
+    InstructionExample:
+      summary: Instruction representation example.
+      value:
+        stepNumber: 1
+        stepDescription: Insert the gahnun to the oven, and you done :).
+    IngredientAndAmountExample:
+      summary: IngredientAndAmount representation example.
+      value:
+        ingredient: curry
+        amount: 0.5
+        Unit measure: grams
+    ImageExample:
+      summary: Image representation example.
+      value:
+        pictureName: Gahnon
+        path: /images/gahnon.png
+    BasePreviewPecipeExample:
+      summary: BasePreviewPecipe representation example.
+      value:
+        image:
+          $ref: '#/components/examples/ImageExample'
+        title: gahnun
+        timeInMinutes:
+          $ref: '#/components/examples/TimeExample'
+        aggregateLikes: 1,000,000
+        vegan: true
+        vegeterian: true
+        isBeenWatched: true
+        isFavorite: true
+    PreviewPecipeExample:
+      summary: PreviewPecipe representation example.
+      value:
+        id: 1
+        image:
+          $ref: '#/components/examples/ImageExample'
+        title: gahnun
+        timeInMinutes:
+          $ref: '#/components/examples/TimeExample'
+        likesAmount: 1,000,000
+        vegan: true
+        vegeterian: true
+        isBeenWatched: true
+        isFavorite: true
+    BaseRecipeExample:
+      summary: BaseRecipe representation example.
+      value:
+        image:
+          $ref: '#/components/examples/ImageExample'
+        recipeName: gahnun
+        timeInMinutes:
+          $ref: '#/components/examples/TimeExample'
+        aggregateLikes: 1,000,000
+        vegan: true
+        vegeterian: true
+        isBeenWatched: true
+        isFavorite: true
+        Ingredients:
+          $ref: '#/components/examples/IngredientAndAmountExample'
+        Instructions:
+          $ref: '#/components/examples/InstructionExample'
+        serving: 5
+    RecipeExample:
+      summary: Recipe representation example.
+      value:
+        recipeId: 1
+        image:
+          $ref: '#/components/examples/ImageExample'
+        title: gahnun
+        cookTime:
+          $ref: '#/components/examples/TimeExample'
+        likesAmount: 1,000,000
+        vegan: true
+        vegeterian: true
+        isBeenWatched: true
+        isFavorite: true
+        Ingredients:
+          $ref: '#/components/examples/IngredientAndAmountExample'
+        Instructions:
+          $ref: '#/components/examples/InstructionExample'
+        serving: 5
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      name: session
+      in: cookie
