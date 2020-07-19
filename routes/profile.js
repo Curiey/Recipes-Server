@@ -35,8 +35,18 @@ router.get("/viewFavorites", async function (req, res, next) {
     .then((result) => {
       result.forEach((recipe) => recipes.recipeList.push(recipe));
     })
-    .catch((error) => res.send({ status: 401, message: error.message }));
+    .catch((err) => console.log("error occure while tried to push recipes. ", err))
   res.status(200).send(recipes);
+  // try {
+  //   await Promise.all(favoritsRecipesSpooncular)
+  //   .then((result) => {
+  //     result.forEach((recipe) => recipes.recipeList.push(recipe));
+  //   })
+  //   res.status(200).send(recipes);
+  // }
+  // catch (error) {
+  //   res.send({ status: 401, message: error.message });
+  // }
 });
 
 
