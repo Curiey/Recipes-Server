@@ -88,6 +88,7 @@ async function getRandomRecipes() {
       number: process.env.numberOfRandom
     }
   })
+    .catch((error) => next(error));
 }
 
 function checkIfThereIsInstractions(recipes) {
@@ -157,42 +158,42 @@ app.get("/getRandomRecipes/explore"), async function (req, res) {
 
   res.status(200).send(respond);
 }
+
 app.get("/viewOurFamilyRecipes", async function (req, res, next) {
-  let ourFamilyRecipesIds = [1, 2, 3, 4, 5];
+  let ourFamilyRecipesIds = [1, 2, 3];
   let ourFamilyRecipes = await Promise.all(ourFamilyRecipesIds.map((recipeID) => Utils.getRecipeByID(req.id, recipeID)));
-  res.status(200).send([ ...ourFamilyRecipes ]);
+  res.status(200).send([...ourFamilyRecipes]);
 });
 
 // Welcome
 app.get("/", async function (req, res, next) {
 
-  try {
-    let spoonacularRandomRecipes = await getRandomRecipes()
+  //TODO: return it later ! ! !
+  let spoonacularRandomRecipes = await getRandomRecipes();
+  //  writeJSONToDisc(spoonacularRandomRecipes.data.recipes);
+  //TODO: delete later ! ! !
+  // let spoonacularRandomRecipes = readJSONFromDisc()
 
-    while (!checkIfThereIsInstractions(spoonacularRandomRecipes)) { 
-      spoonacularRandomRecipes = await getRandomRecipes();
-    }
+  while (!checkIfThereIsInstractions(spoonacularRandomRecipes)) { //TODO: after removing the read/write from disc change back to spoonacularRandomRecipes.data.recipes
+    spoonacularRandomRecipes = await getRandomRecipes();
+    // writeJSONToDisc(spoonacularRandomRecipes.data.recipes);
+  }
 
-    let randomRecipes = await transformSpoonacularRecipes(spoonacularRandomRecipes.data.recipes, req.id)
+  let randomRecipes = await transformSpoonacularRecipes(spoonacularRandomRecipes.data.recipes, req.id) //TODO: after removing the read/write from disc change back to spoonacularRandomRecipes.data.recipes
+    .catch((error) => next(error));
+  let randomRecpesList = []
+  randomRecipes.map((arg) => randomRecpesList.push(arg));
+  let respond = { RandomRecipes: randomRecpesList };
+  if (req.id) {
+    let lastRecipesViewed = await getHistory(req.id)
       .catch((error) => next(error));
-    let randomRecpesList = []
-    randomRecipes.map((arg) => randomRecpesList.push(arg));
-    let respond = { RandomRecipes: randomRecpesList };
-    if (req.id) {
-      let lastRecipesViewed = await getHistory(req.id)
-        .catch((error) => next(error));
-      let lastRecipesViewedList = [];
-      lastRecipesViewed.map((arg) => lastRecipesViewedList.push(arg));
-      respond.LastRecipedViewed = lastRecipesViewedList;
-    } else {
-      respond.LastRecipedViewed = [];
-    }
-    res.status(200).send(respond);
+    let lastRecipesViewedList = [];
+    lastRecipesViewed.map((arg) => lastRecipesViewedList.push(arg));
+    respond.LastRecipedViewed = lastRecipesViewedList;
+  } else {
+    respond.LastRecipedViewed = [];
   }
-  catch (error) {
-    console.log("error occur while trying to get random recipes from spoonacular. please chech apikey");
-    res.status(500).send({randomRecpesList: [], LastRecipedViewed: []});
-  }
+  res.status(200).send(respond);
 });
 
 

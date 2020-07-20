@@ -25,7 +25,7 @@ exports.execQuery = async function (query) {
     var result = await pool.request().query(query);
     return result.recordset;
   } catch (err) {
-    // console.error("SQL error", err);
-    throw err;
+    console.log("SQL error", err);
+    // throw err;
   }
 };
