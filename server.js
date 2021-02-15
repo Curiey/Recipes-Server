@@ -4,8 +4,8 @@ var path = require("path");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
 const session = require("client-sessions");
-const DButils = require("DButils");
-const Utils = require("Utils");
+const DButils = require("./DButils");
+const Utils = require("./Utils");
 const axios = require("axios");
 const cors = require('cors');
 
