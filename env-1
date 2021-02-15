@@ -1,0 +1,18 @@
+tedious_userName=curiey
+tedious_password=48126640Az
+tedious_server=server-attackonrecipes.database.windows.net
+tedious_database=RecipesDB
+tedious_encrypt=true
+
+DBLog=true
+DBmin=2
+DBmax = 5
+
+COOKIE_SECRET=3a47607a05204d7c86faa134c766d3b7
+
+numberOfRandom=3
+api_domain=https://api.spoonacular.com/recipes
+spooncular_apiKey=3a47607a05204d7c86faa134c766d3b7
+bcrypt_saltRound=13
+
+port=3000
