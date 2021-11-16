@@ -9,7 +9,6 @@ const Utils = require("./Utils");
 const axios = require("axios");
 const cors = require('cors');
 
-//TODO: Delete later
 var fs = require('fs');
 // --------------------
 
@@ -168,11 +167,7 @@ app.get("/viewOurFamilyRecipes", async function (req, res, next) {
 // Welcome
 app.get("/", async function (req, res, next) {
 
-  //TODO: return it later ! ! !
   let spoonacularRandomRecipes = await getRandomRecipes();
-  //  writeJSONToDisc(spoonacularRandomRecipes.data.recipes);
-  //TODO: delete later ! ! !
-  // let spoonacularRandomRecipes = readJSONFromDisc()
 
   while (!checkIfThereIsInstractions(spoonacularRandomRecipes)) { //TODO: after removing the read/write from disc change back to spoonacularRandomRecipes.data.recipes
     spoonacularRandomRecipes = await getRandomRecipes();
